@@ -27,6 +27,8 @@ export type Scorer = {
 };
 
 export type LeagueState = {
+  id: "serie-a" | "serie-b";
+  title: string;
   season: number;
   round: number;
   teams: LeagueTeam[];
@@ -35,7 +37,15 @@ export type LeagueState = {
   champion?: string;
 };
 
-const brazilianTeams = [
+export type DomesticSeasonChange = {
+  serieA: LeagueState;
+  serieB: LeagueState;
+  promoted: string[];
+  relegated: string[];
+  news: string[];
+};
+
+const serieATeams = [
   ["Palmeiras", 86],
   ["Flamengo", 87],
   ["Botafogo", 83],
@@ -56,6 +66,29 @@ const brazilianTeams = [
   ["Sport", 74],
   ["Vitória", 74],
   ["Juventude", 73],
+] as const;
+
+const serieBTeams = [
+  ["Goiás", 74],
+  ["Coritiba", 75],
+  ["América-MG", 74],
+  ["Avaí", 72],
+  ["Chapecoense", 71],
+  ["Criciúma", 73],
+  ["Vila Nova", 71],
+  ["Novorizontino", 72],
+  ["CRB", 70],
+  ["Operário-PR", 69],
+  ["Remo", 69],
+  ["Paysandu", 68],
+  ["Cuiabá", 73],
+  ["Ponte Preta", 68],
+  ["Athletic Club", 68],
+  ["Amazonas", 67],
+  ["Botafogo-SP", 67],
+  ["Ferroviária", 67],
+  ["Volta Redonda", 66],
+  ["Brusque", 66],
 ] as const;
 
 const scorerPool: Record<string, string[]> = {
@@ -93,13 +126,82 @@ const emptyTeam = (name: string, strength: number): LeagueTeam => ({
   points: 0,
 });
 
-export function createLeagueState(season: number): LeagueState {
+function createLeague(
+  id: LeagueState["id"],
+  title: string,
+  season: number,
+  sourceTeams: readonly (readonly [string, number])[],
+): LeagueState {
   return {
+    id,
+    title,
     season,
     round: 0,
-    teams: brazilianTeams.map(([name, strength]) => emptyTeam(name, strength)),
+    teams: sourceTeams.map(([name, strength]) => emptyTeam(name, strength)),
     recentResults: [],
     scorers: [],
+  };
+}
+
+export function createLeagueState(season: number): LeagueState {
+  return createLeague("serie-a", "Brasileirão Série A", season, serieATeams);
+}
+
+export function createSecondDivisionState(season: number): LeagueState {
+  return createLeague("serie-b", "Brasileirão Série B", season, serieBTeams);
+}
+
+function resetWithTeams(
+  state: LeagueState,
+  season: number,
+  teams: Array<{ name: string; strength: number }>,
+): LeagueState {
+  return {
+    id: state.id,
+    title: state.title,
+    season,
+    round: 0,
+    teams: teams.map((team) => emptyTeam(team.name, team.strength)),
+    recentResults: [],
+    scorers: [],
+  };
+}
+
+export function rollDomesticSeason(
+  serieA: LeagueState,
+  serieB: LeagueState,
+  nextSeason: number,
+): DomesticSeasonChange {
+  const orderedA = [...serieA.teams];
+  const orderedB = [...serieB.teams];
+  const relegatedTeams = orderedA.slice(-4);
+  const promotedTeams = orderedB.slice(0, 4);
+
+  const remainingA = orderedA.slice(0, -4);
+  const remainingB = orderedB.slice(4);
+
+  const nextATeams = [...remainingA, ...promotedTeams].map((team) => ({
+    name: team.name,
+    strength: Math.min(90, team.strength + (promotedTeams.some((p) => p.name === team.name) ? 1 : 0)),
+  }));
+
+  const nextBTeams = [...remainingB, ...relegatedTeams].map((team) => ({
+    name: team.name,
+    strength: Math.max(62, team.strength - (relegatedTeams.some((r) => r.name === team.name) ? 1 : 0)),
+  }));
+
+  const promoted = promotedTeams.map((team) => team.name);
+  const relegated = relegatedTeams.map((team) => team.name);
+
+  return {
+    serieA: resetWithTeams(serieA, nextSeason, nextATeams),
+    serieB: resetWithTeams(serieB, nextSeason, nextBTeams),
+    promoted,
+    relegated,
+    news: [
+      `Acesso à Série A: ${promoted.join(", ")}.`,
+      `Rebaixados para a Série B: ${relegated.join(", ")}.`,
+    ],
   };
 }
 
@@ -145,7 +247,7 @@ function sampleGoals(lambda: number) {
 }
 
 function addGoalToScorer(scorers: Scorer[], club: string) {
-  const candidates = scorerPool[club] ?? [`Atacante do ${club}`];
+  const candidates = scorerPool[club] ?? [`Atacante do ${club}`, `Meia do ${club}`, `Ponta do ${club}`];
   const roll = Math.random();
   const index = roll < 0.58 ? 0 : roll < 0.84 ? 1 : Math.min(2, candidates.length - 1);
   const name = candidates[index] ?? candidates[0];
@@ -233,7 +335,7 @@ function simulateRound(state: LeagueState): LeagueState {
     round: roundNumber,
     teams: ordered,
     scorers: scorers.sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name)),
-    recentResults: [...results, ...state.recentResults].slice(0, 20),
+    recentResults: [...results, ...state.recentResults].slice(0, 30),
     champion: roundNumber === 38 ? ordered[0]?.name : state.champion,
   };
 }
@@ -243,7 +345,15 @@ export function simulateLeagueWeeks(
   weeks: number,
   season: number,
 ): { state: LeagueState; news: string[] } {
-  let state = current.season === season ? current : createLeagueState(season);
+  let state =
+    current.season === season
+      ? current
+      : resetWithTeams(
+          current,
+          season,
+          current.teams.map((team) => ({ name: team.name, strength: team.strength })),
+        );
+
   const news: string[] = [];
 
   for (let i = 0; i < weeks; i += 1) {
@@ -259,16 +369,16 @@ export function simulateLeagueWeeks(
 
     if (biggest) {
       news.push(
-        `Brasileirão R${latestRound}: ${biggest.home} ${biggest.homeGoals} x ${biggest.awayGoals} ${biggest.away}.`,
+        `${state.title} R${latestRound}: ${biggest.home} ${biggest.homeGoals} x ${biggest.awayGoals} ${biggest.away}.`,
       );
     }
 
     if (leader && leader !== beforeLeader) {
-      news.push(`${leader} assumiu a liderança do Brasileirão após a rodada ${latestRound}.`);
+      news.push(`${leader} assumiu a liderança da ${state.title} após a rodada ${latestRound}.`);
     }
 
     if (state.champion) {
-      news.push(`${state.champion} é campeão brasileiro da temporada ${season}.`);
+      news.push(`${state.champion} é campeão da ${state.title} em ${season}.`);
       break;
     }
   }
