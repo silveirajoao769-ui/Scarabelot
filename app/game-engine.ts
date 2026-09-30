@@ -231,7 +231,8 @@ export function simulateWorld(input: SimulationInput): SimulationResult {
           : player,
       );
 
-      transfers = [[candidate.name, origin, destination, fee], ...transfers].slice(0, 12);
+      const record: TransferRecord = [candidate.name, origin, destination, fee];
+      transfers = [record, ...transfers].slice(0, 12);
       news.push(`${candidate.name} deixou o ${origin} e acertou com o ${destination} por € ${Math.round(fee / 1_000_000)} mi.`);
 
       if (candidate.agent) {
