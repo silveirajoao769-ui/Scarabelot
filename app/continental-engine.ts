@@ -11,7 +11,7 @@ export type CupMatch = {
 };
 
 export type TournamentState = {
-  id: "libertadores" | "champions";
+  id: "libertadores" | "champions" | "afc" | "caf";
   title: string;
   season: number;
   stageIndex: number;
@@ -25,76 +25,45 @@ export type TournamentState = {
 const stages = ["Oitavas", "Quartas", "Semifinal", "Final"] as const;
 
 const strengths: Record<string, number> = {
-  Palmeiras: 86,
-  Flamengo: 87,
-  Botafogo: 83,
-  "São Paulo": 81,
-  Internacional: 80,
-  Cruzeiro: 80,
-  Bahia: 79,
-  Corinthians: 79,
-  "River Plate": 85,
-  Boca: 83,
-  Racing: 81,
-  "Estudiantes": 80,
-  "Peñarol": 79,
-  Nacional: 78,
-  "LDU Quito": 77,
-  "Independiente del Valle": 78,
-  "Real Madrid": 94,
-  Barcelona: 91,
-  Liverpool: 92,
-  Chelsea: 88,
-  "Manchester City": 92,
-  Arsenal: 90,
-  Bayern: 91,
-  PSG: 91,
-  "Inter de Milão": 89,
-  Milan: 87,
-  Juventus: 87,
-  "Atlético de Madrid": 88,
-  Dortmund: 87,
-  Leverkusen: 88,
-  Napoli: 87,
-  Benfica: 85,
+  Palmeiras: 86, Flamengo: 87, Botafogo: 83, "São Paulo": 81, Internacional: 80,
+  Cruzeiro: 80, Bahia: 79, Corinthians: 79, "River Plate": 85, Boca: 83, Racing: 81,
+  Estudiantes: 80, "Peñarol": 79, Nacional: 78, "LDU Quito": 77, "Independiente del Valle": 78,
+
+  "Real Madrid": 94, Barcelona: 91, Liverpool: 92, Chelsea: 88, "Manchester City": 92,
+  Arsenal: 90, Bayern: 91, PSG: 91, "Inter de Milão": 89, Milan: 87, Juventus: 87,
+  "Atlético de Madrid": 88, Dortmund: 87, Leverkusen: 88, Napoli: 87, Benfica: 85,
+
+  "Al Hilal": 90, "Al Nassr": 88, "Al Ittihad": 86, "Urawa Reds": 82,
+  "Kawasaki Frontale": 80, "Jeonbuk Motors": 81, "Yokohama F. Marinos": 80,
+  "Ulsan HD": 80, "Al Sadd": 82, "Al Ain": 83, "Persepolis": 80, "Esteghlal": 79,
+  "Buriram United": 76, "Johor Darul Ta'zim": 77, "Shanghai Port": 78, "Pohang Steelers": 79,
+
+  "Al Ahly": 87, "Wydad Casablanca": 82, "Raja Casablanca": 82, Espérance: 81,
+  "Mamelodi Sundowns": 83, "TP Mazembe": 80, "Zamalek": 81, "Pyramids": 81,
+  "Orlando Pirates": 79, "Simba SC": 76, "Young Africans": 76, "AS FAR": 78,
+  "CR Belouizdad": 78, "Petro de Luanda": 77, "ASEC Mimosas": 76, "USM Alger": 78,
 };
 
 const defaultLibertadores = [
-  "Palmeiras",
-  "Flamengo",
-  "Botafogo",
-  "São Paulo",
-  "Internacional",
-  "Cruzeiro",
-  "Bahia",
-  "Corinthians",
-  "River Plate",
-  "Boca",
-  "Racing",
-  "Estudiantes",
-  "Peñarol",
-  "Nacional",
-  "LDU Quito",
-  "Independiente del Valle",
+  "Palmeiras","Flamengo","Botafogo","São Paulo","Internacional","Cruzeiro","Bahia","Corinthians",
+  "River Plate","Boca","Racing","Estudiantes","Peñarol","Nacional","LDU Quito","Independiente del Valle",
 ];
 
 const defaultChampions = [
-  "Real Madrid",
-  "Barcelona",
-  "Liverpool",
-  "Chelsea",
-  "Manchester City",
-  "Arsenal",
-  "Bayern",
-  "PSG",
-  "Inter de Milão",
-  "Milan",
-  "Juventus",
-  "Atlético de Madrid",
-  "Dortmund",
-  "Leverkusen",
-  "Napoli",
-  "Benfica",
+  "Real Madrid","Barcelona","Liverpool","Chelsea","Manchester City","Arsenal","Bayern","PSG",
+  "Inter de Milão","Milan","Juventus","Atlético de Madrid","Dortmund","Leverkusen","Napoli","Benfica",
+];
+
+const defaultAfc = [
+  "Al Hilal","Al Nassr","Al Ittihad","Urawa Reds","Kawasaki Frontale","Jeonbuk Motors",
+  "Yokohama F. Marinos","Ulsan HD","Al Sadd","Al Ain","Persepolis","Esteghlal",
+  "Buriram United","Johor Darul Ta'zim","Shanghai Port","Pohang Steelers",
+];
+
+const defaultCaf = [
+  "Al Ahly","Wydad Casablanca","Raja Casablanca","Espérance","Mamelodi Sundowns","TP Mazembe",
+  "Zamalek","Pyramids","Orlando Pirates","Simba SC","Young Africans","AS FAR",
+  "CR Belouizdad","Petro de Luanda","ASEC Mimosas","USM Alger",
 ];
 
 function shuffled<T>(items: T[]) {
@@ -121,8 +90,8 @@ function goalsFor(team: string, rival: string, homeBonus: number) {
 }
 
 function simulateKnockoutMatch(stage: string, home: string, away: string): CupMatch {
-  let homeGoals = goalsFor(home, away, 0.12);
-  let awayGoals = goalsFor(away, home, 0);
+  const homeGoals = goalsFor(home, away, 0.12);
+  const awayGoals = goalsFor(away, home, 0);
 
   if (homeGoals === awayGoals) {
     const homeStrength = strengths[home] ?? 78;
@@ -133,24 +102,12 @@ function simulateKnockoutMatch(stage: string, home: string, away: string): CupMa
     const winnerPens = 4 + Math.floor(Math.random() * 2);
     const loserPens = Math.max(2, winnerPens - 1 - Math.floor(Math.random() * 2));
     return {
-      stage,
-      home,
-      away,
-      homeGoals,
-      awayGoals,
-      winner,
+      stage, home, away, homeGoals, awayGoals, winner,
       penalties: `${winner} ${winnerPens} x ${loserPens} ${loser}`,
     };
   }
 
-  return {
-    stage,
-    home,
-    away,
-    homeGoals,
-    awayGoals,
-    winner: homeGoals > awayGoals ? home : away,
-  };
+  return { stage, home, away, homeGoals, awayGoals, winner: homeGoals > awayGoals ? home : away };
 }
 
 function createTournament(
@@ -171,18 +128,29 @@ function createTournament(
   };
 }
 
-export function createLibertadoresState(
-  season: number,
-  brazilianQualifiers?: string[],
-): TournamentState {
+export function createLibertadoresState(season: number, brazilianQualifiers?: string[]): TournamentState {
   const brazilian = (brazilianQualifiers?.length ? brazilianQualifiers : defaultLibertadores.slice(0, 8)).slice(0, 8);
   const others = defaultLibertadores.filter((team) => !brazilian.includes(team));
-  const participants = [...brazilian, ...others].slice(0, 16);
-  return createTournament("libertadores", "CONMEBOL Libertadores", season, participants);
+  return createTournament("libertadores", "CONMEBOL Libertadores", season, [...brazilian, ...others].slice(0, 16));
 }
 
 export function createChampionsState(season: number): TournamentState {
   return createTournament("champions", "UEFA Champions League", season, defaultChampions);
+}
+
+export function createAfcState(season: number): TournamentState {
+  return createTournament("afc", "AFC Champions Elite", season, defaultAfc);
+}
+
+export function createCafState(season: number): TournamentState {
+  return createTournament("caf", "CAF Champions League", season, defaultCaf);
+}
+
+function recreateForSeason(current: TournamentState, season: number, brazilianQualifiers?: string[]) {
+  if (current.id === "libertadores") return createLibertadoresState(season, brazilianQualifiers);
+  if (current.id === "champions") return createChampionsState(season);
+  if (current.id === "afc") return createAfcState(season);
+  return createCafState(season);
 }
 
 function simulateStage(state: TournamentState): TournamentState {
@@ -224,13 +192,7 @@ export function simulateTournamentWeeks(
   season: number,
   brazilianQualifiers?: string[],
 ): { state: TournamentState; news: string[] } {
-  let state =
-    current.season === season
-      ? current
-      : current.id === "libertadores"
-        ? createLibertadoresState(season, brazilianQualifiers)
-        : createChampionsState(season);
-
+  let state = current.season === season ? current : recreateForSeason(current, season, brazilianQualifiers);
   const news: string[] = [];
 
   for (let i = 0; i < weeks; i += 1) {
@@ -246,9 +208,7 @@ export function simulateTournamentWeeks(
 
     const featured = state.matches[0];
     if (featured) {
-      news.push(
-        `${state.title} • ${beforeStage}: ${featured.home} ${featured.homeGoals} x ${featured.awayGoals} ${featured.away}.`,
-      );
+      news.push(`${state.title} • ${beforeStage}: ${featured.home} ${featured.homeGoals} x ${featured.awayGoals} ${featured.away}.`);
     }
 
     if (state.champion) {
