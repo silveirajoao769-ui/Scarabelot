@@ -103,6 +103,14 @@ const table = [
   ["Bahia", 18, 29],
 ];
 
+const rivalAgents = [
+  { name: "Elite Sports", country: "PT", reputation: 94, clients: 38, style: "Agressivo" },
+  { name: "Prime Football", country: "ES", reputation: 90, clients: 31, style: "Negociador" },
+  { name: "Brazil Stars", country: "BR", reputation: 86, clients: 27, style: "Formador" },
+  { name: "Global Eleven", country: "EN", reputation: 82, clients: 24, style: "Internacional" },
+  { name: "Next Gen Agency", country: "DE", reputation: 78, clients: 19, style: "Talentos" },
+];
+
 const newsPool = [
   "Real Madrid monitora um dos seus clientes.",
   "Novo talento brasileiro entra no radar de clubes europeus.",
@@ -158,6 +166,7 @@ export default function HomePage() {
   const [offerCommission, setOfferCommission] = useState(10);
   const [negotiationStatus, setNegotiationStatus] = useState("");
   const [matchMinute, setMatchMinute] = useState(62);
+  const [marketTab, setMarketTab] = useState<"transferencias" | "propostas" | "emprestimos" | "agentes">("transferencias");
 
   useEffect(() => {
     const raw = localStorage.getItem("agent-fc-save-v1");
@@ -249,11 +258,48 @@ export default function HomePage() {
 
   function signPlayer(player: Player) {
     if (player.agent) return;
-    const fee = Math.max(25000, Math.round(player.value * 0.0005));
-    if (money < fee) return;
-    setMoney((m) => m - fee);
-    setPlayers((current) => current.map((p) => p.name === player.name ? { ...p, agent: true, relation: Math.max(p.relation, 70) } : p));
-    setNews((current) => [`${player.name} assinou contrato de representação com sua agência.`, ...current].slice(0, 5));
+
+    const approachCost = Math.max(2_500, Math.round(player.value * 0.00008));
+    if (money < approachCost) {
+      setNews((current) => [`Você não tem caixa suficiente para abordar ${player.name}.`, ...current].slice(0, 8));
+      return;
+    }
+
+    setMoney((m) => Math.max(0, m - approachCost));
+
+    const difficulty = Math.max(0, (player.ger - 72) * 1.4);
+    const chance = Math.min(
+      92,
+      Math.max(8, player.relation * 0.55 + reputation * 0.45 - difficulty),
+    );
+
+    if (Math.random() * 100 <= chance) {
+      setPlayers((current) =>
+        current.map((p) =>
+          p.name === player.name
+            ? { ...p, agent: true, relation: Math.max(p.relation, 68) }
+            : p,
+        ),
+      );
+      setReputation((r) => Math.min(100, r + (player.ger >= 85 ? 2 : 1)));
+      setNews((current) => [
+        `${player.name} aceitou sua proposta e agora é cliente da agência.`,
+        ...current,
+      ].slice(0, 8));
+    } else {
+      setPlayers((current) =>
+        current.map((p) =>
+          p.name === player.name
+            ? { ...p, relation: Math.max(1, p.relation - 4) }
+            : p,
+        ),
+      );
+      const rival = rivalAgents[Math.floor(Math.random() * rivalAgents.length)];
+      setNews((current) => [
+        `${player.name} recusou sua abordagem. ${rival.name} também está monitorando o atleta.`,
+        ...current,
+      ].slice(0, 8));
+    }
   }
 
   if (!careerStarted) {
@@ -457,11 +503,42 @@ export default function HomePage() {
 
           {screen === "mercado" && (
             <section className="panel data-screen">
-              <div className="tabs"><button className="active">Transferências</button><button>Propostas</button><button>Empréstimos</button><button>Agentes rivais</button></div>
-              <div className="market-head"><span>Jogador</span><span>De</span><span></span><span>Para</span><span>Valor</span></div>
-              {transferHistory.map(([player, from, to, value]) => (
-                <div className="market-row" key={String(player)}><b>{player}</b><span>{from}</span><ChevronRight /><span>{to}</span><strong>{formatMoney(Number(value))}</strong></div>
-              ))}
+              <div className="tabs">
+                <button className={marketTab === "transferencias" ? "active" : ""} onClick={() => setMarketTab("transferencias")}>Transferências</button>
+                <button className={marketTab === "propostas" ? "active" : ""} onClick={() => setMarketTab("propostas")}>Propostas</button>
+                <button className={marketTab === "emprestimos" ? "active" : ""} onClick={() => setMarketTab("emprestimos")}>Empréstimos</button>
+                <button className={marketTab === "agentes" ? "active" : ""} onClick={() => setMarketTab("agentes")}>Agentes rivais</button>
+              </div>
+
+              {marketTab === "agentes" ? (
+                <>
+                  <div className="player-list head"><span>Agência rival</span><span>País</span><span>REP</span><span>Clientes</span><span>Estilo</span><span></span><span></span></div>
+                  {rivalAgents.map((agent) => (
+                    <div className="player-list" key={agent.name}>
+                      <span className="player-name"><i>{agent.country}</i><span><b>{agent.name}</b><small>Concorrente global</small></span></span>
+                      <span>{agent.country}</span>
+                      <strong className="rating">{agent.reputation}</strong>
+                      <span>{agent.clients}</span>
+                      <b>{agent.style}</b>
+                      <span>{agent.reputation > reputation ? "Ameaça alta" : "Alcançável"}</span>
+                      <span></span>
+                    </div>
+                  ))}
+                </>
+              ) : marketTab === "transferencias" ? (
+                <>
+                  <div className="market-head"><span>Jogador</span><span>De</span><span></span><span>Para</span><span>Valor</span></div>
+                  {transferHistory.map(([player, from, to, value]) => (
+                    <div className="market-row" key={String(player) + String(value)}><b>{player}</b><span>{from}</span><ChevronRight /><span>{to}</span><strong>{formatMoney(Number(value))}</strong></div>
+                  ))}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <Search />
+                  <h3>{marketTab === "propostas" ? "Nenhuma proposta pendente" : "Nenhum empréstimo em negociação"}</h3>
+                  <p>Novas oportunidades aparecem conforme o mundo avança e os clubes tomam decisões.</p>
+                </div>
+              )}
             </section>
           )}
 
