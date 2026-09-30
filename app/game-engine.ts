@@ -1,5 +1,7 @@
 "use client";
 
+import { transferDestinationNames } from "./world-clubs";
+
 export type EnginePlayer = {
   name: string;
   age: number;
@@ -41,22 +43,7 @@ export type SimulationResult = {
   operatingCost: number;
 };
 
-const destinationClubs = [
-  "Real Madrid",
-  "Barcelona",
-  "Liverpool",
-  "Chelsea",
-  "Manchester City",
-  "Arsenal",
-  "Bayern",
-  "PSG",
-  "Inter de Milão",
-  "Milan",
-  "Palmeiras",
-  "Flamengo",
-  "Botafogo",
-  "Al Hilal",
-];
+const destinationClubs = transferDestinationNames;
 
 const youthFirstNames = [
   "Gabriel",
