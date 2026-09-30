@@ -156,6 +156,7 @@ export default function HomePage() {
   const [offerSalary, setOfferSalary] = useState(150000);
   const [offerYears, setOfferYears] = useState(5);
   const [offerCommission, setOfferCommission] = useState(10);
+  const [negotiationStatus, setNegotiationStatus] = useState("");
   const [matchMinute, setMatchMinute] = useState(62);
 
   useEffect(() => {
@@ -214,6 +215,36 @@ export default function HomePage() {
     setPlayers(result.players as Player[]);
     setTransferHistory(result.transfers);
     setNews((current) => [...result.news, ...current].slice(0, 8));
+  }
+
+  function resolveContractOffer() {
+    const salaryRatio = offerSalary / Math.max(1, selectedPlayer.salary);
+    const acceptanceScore =
+      selectedPlayer.relation * 0.45 +
+      Math.min(1.45, salaryRatio) * 34 +
+      Math.min(offerYears, 5) * 2.2 -
+      Math.max(0, offerCommission - 12) * 0.8;
+    const chance = Math.min(94, Math.max(12, acceptanceScore));
+    const accepted = Math.random() * 100 <= chance;
+
+    if (accepted) {
+      const updated = {
+        ...selectedPlayer,
+        salary: offerSalary,
+        relation: Math.min(100, selectedPlayer.relation + 5),
+      };
+      setSelectedPlayer(updated);
+      setPlayers((current) => current.map((p) => p.name === updated.name ? updated : p));
+      setReputation((r) => Math.min(100, r + 1));
+      setNegotiationStatus(`✅ ${selectedPlayer.name} aceitou: ${formatMoney(offerSalary)}/semana por ${offerYears} anos.`);
+      setNews((current) => [`Contrato fechado com ${selectedPlayer.name}: ${offerYears} anos e ${formatMoney(offerSalary)}/semana.`, ...current].slice(0, 8));
+    } else {
+      const updatedRelation = Math.max(1, selectedPlayer.relation - 2);
+      setSelectedPlayer((p) => ({ ...p, relation: updatedRelation }));
+      setPlayers((current) => current.map((p) => p.name === selectedPlayer.name ? { ...p, relation: updatedRelation } : p));
+      setNegotiationStatus(`❌ ${selectedPlayer.name} recusou. Chance estimada da proposta: ${Math.round(chance)}%.`);
+      setNews((current) => [`Negociação com ${selectedPlayer.name} terminou sem acordo.`, ...current].slice(0, 8));
+    }
   }
 
   function signPlayer(player: Player) {
@@ -419,7 +450,7 @@ export default function HomePage() {
                 <div className="offer-row"><span>Duração</span><button onClick={() => setOfferYears(Math.max(1, offerYears - 1))}>−</button><b>{offerYears} anos</b><button onClick={() => setOfferYears(Math.min(8, offerYears + 1))}>+</button></div>
                 <div className="offer-row"><span>Comissão do agente</span><button onClick={() => setOfferCommission(Math.max(1, offerCommission - 1))}>−</button><b>{offerCommission}%</b><button onClick={() => setOfferCommission(Math.min(20, offerCommission + 1))}>+</button></div>
                 <div className="clauses"><span>Cláusulas</span><button>+ Bônus por títulos</button><button>+ Bônus por jogos</button><button>+ Cláusula de rescisão</button></div>
-                <button className="primary giant" onClick={() => setNews((n) => [`Proposta enviada por ${selectedPlayer.name}: ${formatMoney(offerSalary)}/semana, ${offerYears} anos.`, ...n].slice(0, 5))}>ENVIAR PROPOSTA</button>
+                <button className="primary giant" onClick={resolveContractOffer}>ENVIAR PROPOSTA</button>{negotiationStatus && <small>{negotiationStatus}</small>}
               </article>
             </section>
           )}
