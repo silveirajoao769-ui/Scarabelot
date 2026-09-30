@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { simulateWorld, type TransferRecord } from "./game-engine";
+import { createLeagueState, simulateLeagueWeeks, type LeagueState } from "./competition-engine";
 
 type Screen =
   | "inicio"
@@ -92,17 +93,6 @@ const initialTransfers: TransferRecord[] = [
   ["Dani Olmo", "Barcelona", "Manchester City", 75000000],
 ];
 
-const table = [
-  ["Palmeiras", 18, 40],
-  ["Flamengo", 18, 38],
-  ["Botafogo", 18, 37],
-  ["Fortaleza", 18, 34],
-  ["São Paulo", 18, 32],
-  ["Internacional", 18, 31],
-  ["Cruzeiro", 18, 30],
-  ["Bahia", 18, 29],
-];
-
 const rivalAgents = [
   { name: "Elite Sports", country: "PT", reputation: 94, clients: 38, style: "Agressivo" },
   { name: "Prime Football", country: "ES", reputation: 90, clients: 31, style: "Negociador" },
@@ -158,6 +148,7 @@ export default function HomePage() {
   const [reputation, setReputation] = useState(18);
   const [players, setPlayers] = useState(initialPlayers);
   const [transferHistory, setTransferHistory] = useState<TransferRecord[]>(initialTransfers);
+  const [leagueState, setLeagueState] = useState<LeagueState>(() => createLeagueState(2026));
   const [news, setNews] = useState(newsPool.slice(0, 4));
   const [advanceMode, setAdvanceMode] = useState<"dia" | "semana" | "mes">("semana");
   const [selectedPlayer, setSelectedPlayer] = useState<Player>(initialPlayers[0]);
@@ -167,6 +158,7 @@ export default function HomePage() {
   const [negotiationStatus, setNegotiationStatus] = useState("");
   const [matchMinute, setMatchMinute] = useState(62);
   const [marketTab, setMarketTab] = useState<"transferencias" | "propostas" | "emprestimos" | "agentes">("transferencias");
+  const [competitionTab, setCompetitionTab] = useState<"classificacao" | "resultados" | "artilharia">("classificacao");
 
   useEffect(() => {
     const raw = localStorage.getItem("agent-fc-save-v1");
@@ -182,24 +174,29 @@ export default function HomePage() {
       setReputation(saved.reputation ?? 18);
       setPlayers(saved.players ?? initialPlayers);
       setTransferHistory(saved.transferHistory ?? initialTransfers);
+      setLeagueState(saved.leagueState ?? createLeagueState(saved.season ?? 2026));
       setNews(saved.news ?? newsPool.slice(0, 4));
     } catch {}
   }, []);
 
   useEffect(() => {
     localStorage.setItem("agent-fc-save-v1", JSON.stringify({
-      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, news,
+      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, news,
     }));
-  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, news]);
+  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, news]);
 
   const myPlayers = useMemo(() => players.filter((p) => p.agent), [players]);
   const clientValue = myPlayers.reduce((sum, p) => sum + p.value, 0);
+  const leagueLeader = leagueState.teams[0];
+  const topScorer = leagueState.scorers[0];
+  const latestLeagueMatch = leagueState.recentResults[0];
 
   function startCareer() {
     const start = presets[preset];
     setMoney(start.money);
     setReputation(start.rep);
     setPlayers((current) => current.map((p, i) => ({ ...p, agent: i < start.clients })));
+    setLeagueState(createLeagueState(season));
     setCareerStarted(true);
   }
 
@@ -223,7 +220,14 @@ export default function HomePage() {
     setReputation(result.reputation);
     setPlayers(result.players as Player[]);
     setTransferHistory(result.transfers);
-    setNews((current) => [...result.news, ...current].slice(0, 8));
+
+    const leagueRun = simulateLeagueWeeks(
+      leagueState,
+      result.weeksProcessed,
+      result.season,
+    );
+    setLeagueState(leagueRun.state);
+    setNews((current) => [...leagueRun.news, ...result.news, ...current].slice(0, 10));
   }
 
   function resolveContractOffer() {
@@ -426,11 +430,11 @@ export default function HomePage() {
                 </article>
 
                 <article className="panel table-panel">
-                  <div className="panel-title"><span><Trophy /> BRASILEIRÃO SÉRIE A</span><em>RODADA 18</em></div>
+                  <div className="panel-title"><span><Trophy /> BRASILEIRÃO SÉRIE A</span><em>RODADA {leagueState.round}/38</em></div>
                   <div className="league-table">
                     <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>PTS</span></div>
-                    {table.slice(0, 6).map(([club, games, pts], i) => (
-                      <div className="tr" key={club}><span>{i + 1}</span><span><i className="crest">{String(club).slice(0, 1)}</i>{club}</span><span>{games}</span><b>{pts}</b></div>
+                    {leagueState.teams.slice(0, 6).map((team, i) => (
+                      <div className="tr" key={team.name}><span>{i + 1}</span><span><i className="crest">{team.name.slice(0, 1)}</i>{team.name}</span><span>{team.played}</span><b>{team.points}</b></div>
                     ))}
                   </div>
                   <button className="secondary full" onClick={() => setScreen("competicoes")}>Ver competição completa</button>
@@ -557,13 +561,64 @@ export default function HomePage() {
 
           {screen === "competicoes" && (
             <section className="panel data-screen">
-              <div className="competition-header"><span className="cup">🏆</span><div><small>BRASIL</small><h2>Brasileirão Série A</h2><p>Temporada {season}</p></div><button className="secondary">Resultados</button></div>
-              <div className="league-table large">
-                <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>PTS</span></div>
-                {table.map(([club, games, pts], i) => (
-                  <div className="tr" key={club}><span>{i + 1}</span><span><i className="crest">{String(club).slice(0, 1)}</i>{club}</span><span>{games}</span><span>{12 - Math.floor(i / 2)}</span><span>{4 + (i % 2)}</span><span>{2 + Math.floor(i / 3)}</span><b>{pts}</b></div>
-                ))}
+              <div className="competition-header">
+                <span className="cup">🏆</span>
+                <div><small>BRASIL</small><h2>Brasileirão Série A</h2><p>Temporada {leagueState.season} • Rodada {leagueState.round}/38</p></div>
+                <div><small>Líder</small><b>{leagueLeader?.name ?? "—"}</b>{topScorer && <small>Artilheiro: {topScorer.name} ({topScorer.goals})</small>}</div>
               </div>
+
+              <div className="tabs">
+                <button className={competitionTab === "classificacao" ? "active" : ""} onClick={() => setCompetitionTab("classificacao")}>Classificação</button>
+                <button className={competitionTab === "resultados" ? "active" : ""} onClick={() => setCompetitionTab("resultados")}>Resultados</button>
+                <button className={competitionTab === "artilharia" ? "active" : ""} onClick={() => setCompetitionTab("artilharia")}>Artilharia</button>
+              </div>
+
+              {competitionTab === "classificacao" && (
+                <div className="league-table large">
+                  <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>PTS</span></div>
+                  {leagueState.teams.map((team, i) => (
+                    <div className="tr" key={team.name}>
+                      <span>{i + 1}</span>
+                      <span><i className="crest">{team.name.slice(0, 1)}</i>{team.name}</span>
+                      <span>{team.played}</span>
+                      <span>{team.won}</span>
+                      <span>{team.drawn}</span>
+                      <span>{team.lost}</span>
+                      <b>{team.points}</b>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {competitionTab === "resultados" && (
+                <div>
+                  {leagueState.recentResults.length === 0 ? (
+                    <div className="empty-state"><Trophy /><h3>A temporada ainda não começou</h3><p>Avance uma semana para disputar a primeira rodada.</p></div>
+                  ) : leagueState.recentResults.map((result, index) => (
+                    <div className="market-row" key={`${result.round}-${result.home}-${result.away}-${index}`}>
+                      <b>R{result.round}</b>
+                      <span>{result.home}</span>
+                      <strong>{result.homeGoals} × {result.awayGoals}</strong>
+                      <span>{result.away}</span>
+                      <small>{result.homeGoals === result.awayGoals ? "Empate" : result.homeGoals > result.awayGoals ? "Casa venceu" : "Visitante venceu"}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {competitionTab === "artilharia" && (
+                <div className="league-table large">
+                  <div className="tr header"><span>#</span><span>Jogador</span><span>Clube</span><span></span><span></span><span></span><span>Gols</span></div>
+                  {leagueState.scorers.slice(0, 20).map((scorer, i) => (
+                    <div className="tr" key={scorer.name + scorer.club}>
+                      <span>{i + 1}</span><span>{scorer.name}</span><span>{scorer.club}</span><span></span><span></span><span></span><b>{scorer.goals}</b>
+                    </div>
+                  ))}
+                  {leagueState.scorers.length === 0 && <div className="empty-state"><Trophy /><h3>Sem gols registrados</h3><p>A artilharia aparecerá após as primeiras rodadas.</p></div>}
+                </div>
+              )}
+
+              {leagueState.champion && <div className="panel-title"><span><Trophy /> CAMPEÃO: {leagueState.champion}</span><em>{leagueState.season}</em></div>}
             </section>
           )}
 
