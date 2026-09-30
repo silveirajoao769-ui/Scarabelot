@@ -17,35 +17,36 @@ import {
 import { useState } from "react";
 
 const products = [
-  { name: "Transportador de Corrente", model: "TCLS 5060", desc: "Mais praticidade e segurança no transporte.", sprite: 0 },
-  { name: "Rolo Faca Green", model: "6000 e 9000", desc: "Potência, robustez e resultado no manejo de palhada.", sprite: 1 },
-  { name: "Green Digger", model: "1200", desc: "Drenagem eficiente para transformar áreas encharcadas.", sprite: 2 },
-  { name: "Guincho", model: "GHS-2000", desc: "Força, segurança e agilidade para trabalho pesado.", sprite: 3 },
-  { name: "Lâminas Niveladoras", model: "LNR I, II e II-H", desc: "Três configurações para diferentes necessidades.", sprite: 4 },
-  { name: "Limpadeira de Valo", model: "Hidráulica", desc: "Mais rendimento na limpeza e manutenção de valos.", sprite: 5 },
-  { name: "Grade de Rolos", model: "Incorporadora TR", desc: "Eficiência e versatilidade no preparo do solo.", sprite: 6 },
-  { name: "Rolo Faca", model: "RFS Arrozeiro", desc: "Robustez e baixa manutenção para o cultivo do arroz.", sprite: 7 },
+  { name: "Transportador de Corrente", model: "TCLS 5060", text: "Praticidade, segurança e economia no transporte." },
+  { name: "Rolo Faca Green", model: "6000 e 9000", text: "Potência, robustez e resultado no campo." },
+  { name: "Green Digger", model: "1200", text: "Transforme áreas encharcadas em terra produtiva." },
+  { name: "Guincho", model: "GHS-2000", text: "Força, segurança e agilidade para trabalho pesado." },
+  { name: "Lâminas Niveladoras", model: "LNR I, II e II-H", text: "Três modelos para diferentes necessidades." },
+  { name: "Limpadeira de Valo", model: "Hidráulica", text: "Mais agilidade na limpeza e manutenção de valos." },
+  { name: "Grade de Rolos", model: "Incorporadora TR", text: "Eficiência e versatilidade no preparo do solo." },
+  { name: "Rolo Faca", model: "RFS Arrozeiro", text: "Robusto, eficiente e de baixa manutenção." },
 ];
 
-const techPoints = [
-  { x: "17%", y: "30%", title: "Pontos de engate", text: "Mais praticidade no acoplamento e na operação." },
-  { x: "57%", y: "24%", title: "Sistema hidráulico", text: "Controle e desempenho para o trabalho no campo." },
-  { x: "64%", y: "50%", title: "Chassi", text: "Estrutura robusta para operações exigentes." },
-  { x: "30%", y: "67%", title: "Rolos e facas", text: "Componentes voltados ao manejo eficiente da palhada." },
+const tech = [
+  ["Chassi e estrutura", "Construção pensada para operações exigentes no campo."],
+  ["Sistema hidráulico", "Comandos e cilindros integrados à rotina de trabalho."],
+  ["Componentes de solo", "Discos, facas e conjuntos voltados ao desempenho."],
+  ["Manutenção", "Acesso visual aos principais conjuntos e pontos de serviço."],
 ];
 
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [activePoint, setActivePoint] = useState(2);
+  const [activeTech, setActiveTech] = useState(0);
 
   return (
     <main>
       <header className="site-header">
         <a className="brand" href="#inicio" aria-label="Scarabelot">
-          <img
-            src="https://scarabelotimplementos.com/wp-content/uploads/2022/09/logo-scarabelot.png"
-            alt="Scarabelot"
-          />
+          <span className="brand-symbol" aria-hidden="true">
+            <span className="blue-piece" />
+            <span className="red-piece" />
+          </span>
+          <span className="brand-name">Scarabelot</span>
         </a>
 
         <nav className={mobileOpen ? "nav nav-open" : "nav"}>
@@ -60,67 +61,81 @@ export default function Home() {
         <div className="header-actions">
           <label className="search-box">
             <Search size={18} />
-            <input aria-label="Buscar" placeholder="Buscar implementos, peças..." />
+            <input aria-label="Buscar implementos" placeholder="Buscar implementos, peças..." />
           </label>
-          <a className="btn btn-red compact" href="#contato">
-            Solicitar orçamento <ArrowRight size={17} />
-          </a>
+          <a className="btn btn-red compact" href="#contato">Solicitar orçamento <ArrowRight size={17} /></a>
         </div>
 
-        <button className="menu-button" onClick={() => setMobileOpen((v) => !v)} aria-label="Abrir menu">
+        <button className="menu-button" onClick={() => setMobileOpen(v => !v)} aria-label="Abrir menu">
           {mobileOpen ? <X /> : <Menu />}
         </button>
       </header>
 
       <section className="hero" id="inicio">
         <div className="hero-copy">
-          <span className="eyebrow light">DO SOLO BRASILEIRO PARA GRANDES RESULTADOS</span>
+          <span className="eyebrow">DO SOLO BRASILEIRO PARA GRANDES RESULTADOS</span>
           <h1>ENGENHARIA QUE<br />TRANSFORMA<br /><strong>A TERRA.</strong></h1>
           <p>Robustez, tecnologia e desempenho no campo para quem faz o agro acontecer.</p>
-
           <div className="hero-actions">
-            <a className="btn btn-red primary" href="#produtos">
-              <Search size={18} /> Encontrar meu implemento <ArrowRight size={17} />
-            </a>
-            <a className="btn btn-glass" href="#tecnologia"><CircleGauge size={18} /> Ver em 360°</a>
-            <a className="btn btn-glass" href="#campo"><Play size={18} /> Assistir em campo</a>
+            <a className="btn btn-red" href="#produtos"><Search size={18} /> Encontrar meu implemento <ArrowRight size={18} /></a>
+            <a className="btn btn-outline" href="#tecnologia"><CircleGauge size={18} /> Ver tecnologia</a>
+            <button className="btn btn-outline"><Play size={18} /> Assistir em campo</button>
           </div>
-
-          <div className="hero-proof">
-            <div><strong>Desde 1991</strong><span>tradição no agro</span></div>
-            <div><strong>Engenharia própria</strong><span>soluções para o campo</span></div>
+          <div className="hero-metrics">
+            <div><strong>Desde 1991</strong><span>experiência no agro</span></div>
+            <div><strong>Brasil</strong><span>engenharia para o campo</span></div>
+            <div><strong>Pós-venda</strong><span>suporte especializado</span></div>
           </div>
         </div>
 
-        <div className="hero-product" id="tecnologia">
-          <div className="hero-photo sprite sprite-1" aria-label="Rolo Faca Green Scarabelot">
-            <span className="photo-badge">ROLO FACA GREEN</span>
+        <div className="hero-product" aria-label="Implementos Scarabelot">
+          <div className="hero-product-image sprite sprite-2" />
+          <div className="hero-product-shade" />
+          <div className="hero-product-copy">
+            <span>DESTAQUE SCARABELOT</span>
+            <h2>Rolo Faca Green</h2>
+            <p>Visual real do produto, sem ilustração genérica.</p>
+          </div>
+          <div className="hero-tag tag-one">ROBUSTEZ</div>
+          <div className="hero-tag tag-two">CAMPO</div>
+        </div>
 
-            {techPoints.map((point, index) => (
-              <button
-                key={point.title}
-                className={activePoint === index ? "hotspot active" : "hotspot"}
-                style={{ left: point.x, top: point.y }}
-                onClick={() => setActivePoint(index)}
-                aria-label={point.title}
-              >
-                +
+        <aside className="hero-side">
+          <span>DIFERENCIAIS <b>SCARABELOT</b></span>
+          <div><ShieldCheck /><p><strong>Alta resistência</strong><small>Projetado para operações exigentes.</small></p></div>
+          <div><CircleGauge /><p><strong>Tecnologia de campo</strong><small>Mais produtividade e eficiência.</small></p></div>
+          <div><Wrench /><p><strong>Manutenção facilitada</strong><small>Mais praticidade no dia a dia.</small></p></div>
+        </aside>
+      </section>
+
+      <section className="technology" id="tecnologia">
+        <div className="tech-copy">
+          <span className="eyebrow blue">TECNOLOGIA POR DENTRO</span>
+          <h2>Veja o implemento em <b>detalhes.</b></h2>
+          <p>Em vez de desenhar uma máquina falsa em CSS, esta área usa a imagem do produto e prepara a experiência para o exploded view 3D real.</p>
+
+          <div className="tech-list">
+            {tech.map(([title, text], index) => (
+              <button key={title} onClick={() => setActiveTech(index)} className={activeTech === index ? "tech-item active" : "tech-item"}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <div><strong>{title}</strong><small>{text}</small></div>
+                <ArrowRight size={18} />
               </button>
             ))}
-
-            <div className="tech-card">
-              <span>VISÃO TÉCNICA INTERATIVA</span>
-              <h3>{techPoints[activePoint].title}</h3>
-              <p>{techPoints[activePoint].text}</p>
-            </div>
           </div>
+        </div>
 
-          <aside className="differentials">
-            <h2>DIFERENCIAIS <b>SCARABELOT</b></h2>
-            <div><ShieldCheck /><p><strong>Alta resistência</strong><span>Projetado para o trabalho real no campo.</span></p></div>
-            <div><CircleGauge /><p><strong>Tecnologia de campo</strong><span>Mais produtividade e eficiência operacional.</span></p></div>
-            <div><Wrench /><p><strong>Manutenção facilitada</strong><span>Construção pensada para reduzir paradas.</span></p></div>
-          </aside>
+        <div className="tech-visual">
+          <div className="tech-machine sprite sprite-2" />
+          <button className="tech-hotspot hs-1" onClick={() => setActiveTech(0)}>+</button>
+          <button className="tech-hotspot hs-2" onClick={() => setActiveTech(1)}>+</button>
+          <button className="tech-hotspot hs-3" onClick={() => setActiveTech(2)}>+</button>
+          <button className="tech-hotspot hs-4" onClick={() => setActiveTech(3)}>+</button>
+          <div className="tech-caption">
+            <span>{String(activeTech + 1).padStart(2, "0")} / 04</span>
+            <strong>{tech[activeTech][0]}</strong>
+            <p>{tech[activeTech][1]}</p>
+          </div>
         </div>
       </section>
 
@@ -133,16 +148,16 @@ export default function Home() {
           <a href="#contato">Ver todos os produtos <ArrowRight size={17} /></a>
         </div>
 
-        <div className="product-scroller">
-          {products.map((product) => (
+        <div className="product-scroll">
+          {products.map((product, index) => (
             <article className="product-card" key={product.name + product.model}>
-              <div className={`product-photo sprite sprite-${product.sprite}`}>
-                <span>{product.model}</span>
+              <div className={"product-photo sprite sprite-" + (index + 1)}>
+                <span className="photo-label">{product.model}</span>
               </div>
               <div className="product-body">
                 <small>{product.model}</small>
                 <h3>{product.name}</h3>
-                <p>{product.desc}</p>
+                <p>{product.text}</p>
                 <a href="#contato">Ver detalhes <ArrowRight size={16} /></a>
               </div>
             </article>
@@ -150,68 +165,65 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="field-section" id="campo">
-        <div className="field-image sprite sprite-1" />
-        <div className="field-copy">
-          <span className="eyebrow light">DESEMPENHO REAL NO CAMPO</span>
-          <h2>IMPLEMENTOS QUE<br />ENTREGAM <b>RESULTADOS.</b></h2>
-          <p>Soluções para preparo do solo, manejo, drenagem e transporte com a força de quem vive o agro.</p>
-          <a className="btn btn-red" href="#produtos">Conhecer implementos <ArrowRight size={17} /></a>
+      <section className="results">
+        <div className="results-photo sprite sprite-7">
+          <div className="results-overlay">
+            <span>DESEMPENHO REAL NO CAMPO</span>
+            <h2>IMPLEMENTOS QUE<br />ENTREGAM <b>RESULTADOS.</b></h2>
+            <p>Soluções para preparo do solo, manejo, drenagem e transporte.</p>
+            <a className="btn btn-red" href="#produtos">Ver linha de implementos <ArrowRight size={17} /></a>
+          </div>
         </div>
-      </section>
 
-      <section className="commercial-grid">
-        <article className="commercial-card finance">
-          <CircleGauge />
-          <span>SEU PROJETO NO CAMPO</span>
-          <h3>FINANCIAMENTO<br />FACILITADO</h3>
-          <p>Espaço preparado para apresentar condições e levar o cliente direto ao time comercial.</p>
-          <a href="#contato">Simular financiamento <ArrowRight size={16} /></a>
-        </article>
+        <div className="commercial-cards">
+          <article className="commercial-card blue-card">
+            <CircleGauge />
+            <span>SEU PROJETO NO CAMPO</span>
+            <h3>Financiamento<br />facilitado</h3>
+            <p>Espaço direto para apresentar condições comerciais e gerar oportunidades.</p>
+            <a href="#contato">Simular financiamento <ArrowRight size={16} /></a>
+          </article>
 
-        <article className="commercial-card delivery">
-          <Truck />
-          <span>DISPONIBILIDADE</span>
-          <h3>ENTREGA IMEDIATA<br />OU A COMBINAR</h3>
-          <p>Contato rápido para verificar estoque, prazo e condições de entrega.</p>
-          <a href="#contato">Falar com consultor <ArrowRight size={16} /></a>
-        </article>
+          <article className="commercial-card red-card">
+            <Truck />
+            <span>DISPONIBILIDADE</span>
+            <h3>Entrega imediata<br />ou a combinar</h3>
+            <p>Conexão rápida com o time comercial para disponibilidade e condições.</p>
+            <a href="#contato">Falar com consultor <ArrowRight size={16} /></a>
+          </article>
 
-        <article className="commercial-card support" id="pos-venda">
-          <Headphones />
-          <span>SEMPRE POR PERTO</span>
-          <h3>SUPORTE EM<br />TODO O BRASIL</h3>
-          <p>Pós-venda, peças e atendimento técnico organizados em um único canal.</p>
-          <a href="#contato">Encontrar assistência <ArrowRight size={16} /></a>
-        </article>
+          <article className="commercial-card navy-card" id="pos-venda">
+            <Headphones />
+            <span>SEMPRE POR PERTO</span>
+            <h3>Suporte em<br />todo o Brasil</h3>
+            <p>Pós-venda, peças e assistência apresentados de forma simples.</p>
+            <a href="#contato">Encontrar assistência <ArrowRight size={16} /></a>
+          </article>
+        </div>
       </section>
 
       <section className="history" id="empresa">
-        <div>
+        <div className="history-copy">
           <span className="eyebrow blue">NOSSA HISTÓRIA</span>
-          <h2>TRADIÇÃO QUE IMPULSIONA O AGRO.</h2>
-          <p>Uma apresentação institucional mais forte, com foco em engenharia, evolução e proximidade com o produtor rural.</p>
+          <h2>TRADIÇÃO QUE<br />IMPULSIONA O AGRO.</h2>
+          <p>A apresentação institucional ganha espaço próprio, com mais respiro e menos aparência de template.</p>
           <a className="text-link" href="#contato">Conheça a Scarabelot <ArrowRight size={16} /></a>
         </div>
-        <div className="factory-card">
-          <Factory size={44} />
+        <div className="history-panel">
+          <Factory size={46} />
+          <strong>DESDE 1991</strong>
           <span>INDÚSTRIA BRASILEIRA</span>
-          <strong>ENGENHARIA PARA O CAMPO</strong>
+          <p>Engenharia, fabricação e soluções desenvolvidas para a rotina do produtor.</p>
         </div>
       </section>
 
       <footer id="contato">
-        <img
-          src="https://scarabelotimplementos.com/wp-content/uploads/2022/09/logo-scarabelot.png"
-          alt="Scarabelot"
-        />
-        <div>
-          <strong>Scarabelot Implementos</strong>
-          <p>Site em reconstrução visual — próxima etapa: páginas individuais, formulário e WhatsApp.</p>
-        </div>
-        <a className="btn btn-red" href="https://scarabelotimplementos.com/contato/" target="_blank" rel="noreferrer">
-          Falar com a Scarabelot <ArrowRight size={17} />
+        <a className="brand footer-brand" href="#inicio">
+          <span className="brand-symbol"><span className="blue-piece" /><span className="red-piece" /></span>
+          <span className="brand-name">Scarabelot</span>
         </a>
+        <p>Projeto de modernização digital • Scarabelot Implementos</p>
+        <a className="btn btn-red compact" href="mailto:scarabelot@scarabelotimplementos.com.br">Entrar em contato <ArrowRight size={17} /></a>
       </footer>
     </main>
   );
