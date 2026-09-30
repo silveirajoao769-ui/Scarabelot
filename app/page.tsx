@@ -31,6 +31,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { simulateWorld, type TransferRecord } from "./game-engine";
 
 type Screen =
   | "inicio"
@@ -83,7 +84,7 @@ const clubs = [
   { name: "Flamengo", country: "Brasil", rep: 89, budget: 92000000, squad: 83, interest: "João Pedro" },
 ];
 
-const transfers = [
+const initialTransfers: TransferRecord[] = [
   ["K. Mbappé", "Real Madrid", "Liverpool", 180000000],
   ["V. Osimhen", "Galatasaray", "Chelsea", 120000000],
   ["Bruno Guimarães", "Newcastle", "PSG", 95000000],
@@ -144,9 +145,11 @@ export default function HomePage() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [week, setWeek] = useState(12);
   const [season, setSeason] = useState(2026);
+  const [dayOfWeek, setDayOfWeek] = useState(1);
   const [money, setMoney] = useState(180000);
   const [reputation, setReputation] = useState(18);
   const [players, setPlayers] = useState(initialPlayers);
+  const [transferHistory, setTransferHistory] = useState<TransferRecord[]>(initialTransfers);
   const [news, setNews] = useState(newsPool.slice(0, 4));
   const [advanceMode, setAdvanceMode] = useState<"dia" | "semana" | "mes">("semana");
   const [selectedPlayer, setSelectedPlayer] = useState<Player>(initialPlayers[0]);
@@ -164,18 +167,20 @@ export default function HomePage() {
       setPreset(saved.preset ?? "promessa");
       setWeek(saved.week ?? 12);
       setSeason(saved.season ?? 2026);
+      setDayOfWeek(saved.dayOfWeek ?? 1);
       setMoney(saved.money ?? 180000);
       setReputation(saved.reputation ?? 18);
       setPlayers(saved.players ?? initialPlayers);
+      setTransferHistory(saved.transferHistory ?? initialTransfers);
       setNews(saved.news ?? newsPool.slice(0, 4));
     } catch {}
   }, []);
 
   useEffect(() => {
     localStorage.setItem("agent-fc-save-v1", JSON.stringify({
-      careerStarted, preset, week, season, money, reputation, players, news,
+      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, news,
     }));
-  }, [careerStarted, preset, week, season, money, reputation, players, news]);
+  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, news]);
 
   const myPlayers = useMemo(() => players.filter((p) => p.agent), [players]);
   const clientValue = myPlayers.reduce((sum, p) => sum + p.value, 0);
@@ -189,24 +194,26 @@ export default function HomePage() {
   }
 
   function advanceTime() {
-    const steps = advanceMode === "dia" ? 1 : advanceMode === "semana" ? 7 : 28;
-    let nextWeek = week + Math.max(1, Math.round(steps / 7));
-    let nextSeason = season;
-    if (nextWeek > 52) {
-      nextWeek = nextWeek % 52 || 52;
-      nextSeason += 1;
-    }
-    const commission = myPlayers.reduce((sum, p) => sum + Math.round(p.salary * 0.02), 0);
-    const expenses = 18500 + reputation * 330;
-    setWeek(nextWeek);
-    setSeason(nextSeason);
-    setMoney((m) => Math.max(0, m + commission - expenses));
-    setReputation((r) => Math.min(100, r + (Math.random() > 0.63 ? 1 : 0)));
-    setNews((current) => [newsPool[Math.floor(Math.random() * newsPool.length)], ...current].slice(0, 5));
-    setPlayers((current) => current.map((p) => ({
-      ...p,
-      relation: Math.min(100, Math.max(1, p.relation + (Math.random() > 0.52 ? 1 : -1))),
-    })));
+    const days = advanceMode === "dia" ? 1 : advanceMode === "semana" ? 7 : 28;
+    const result = simulateWorld({
+      days,
+      dayOfWeek,
+      week,
+      season,
+      money,
+      reputation,
+      players,
+      transfers: transferHistory,
+    });
+
+    setDayOfWeek(result.dayOfWeek);
+    setWeek(result.week);
+    setSeason(result.season);
+    setMoney(result.money);
+    setReputation(result.reputation);
+    setPlayers(result.players as Player[]);
+    setTransferHistory(result.transfers);
+    setNews((current) => [...result.news, ...current].slice(0, 8));
   }
 
   function signPlayer(player: Player) {
@@ -264,7 +271,7 @@ export default function HomePage() {
         <div className="game-brand"><span>⚽</span><b>FOOTBALL AGENT</b></div>
         <div className="top-stat money"><Banknote /><span><small>Saldo</small><b>{formatMoney(money)}</b></span></div>
         <div className="top-stat"><Star /><span><small>Reputação</small><b>{reputation}/100</b></span></div>
-        <div className="top-stat"><CalendarDays /><span><small>Temporada</small><b>Semana {week} • {season}</b></span></div>
+        <div className="top-stat"><CalendarDays /><span><small>Temporada</small><b>Semana {week} • {["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"][dayOfWeek - 1]} • {season}</b></span></div>
         <button className="message-button"><MessageSquareText /><span>3</span></button>
       </header>
 
@@ -318,7 +325,7 @@ export default function HomePage() {
                 </article>
 
                 <article className="advance-card panel">
-                  <div><CalendarDays /><span><small>SEMANA ATUAL</small><b>Semana {week}</b><em>Temporada {season}</em></span></div>
+                  <div><CalendarDays /><span><small>SEMANA ATUAL</small><b>Semana {week}</b><em>{["Segunda","Terça","Quarta","Quinta","Sexta","Sábado","Domingo"][dayOfWeek - 1]} • Temporada {season}</em></span></div>
                   <select value={advanceMode} onChange={(e) => setAdvanceMode(e.target.value as typeof advanceMode)}>
                     <option value="dia">Avançar 1 dia</option>
                     <option value="semana">Avançar 1 semana</option>
@@ -421,7 +428,7 @@ export default function HomePage() {
             <section className="panel data-screen">
               <div className="tabs"><button className="active">Transferências</button><button>Propostas</button><button>Empréstimos</button><button>Agentes rivais</button></div>
               <div className="market-head"><span>Jogador</span><span>De</span><span></span><span>Para</span><span>Valor</span></div>
-              {transfers.map(([player, from, to, value]) => (
+              {transferHistory.map(([player, from, to, value]) => (
                 <div className="market-row" key={String(player)}><b>{player}</b><span>{from}</span><ChevronRight /><span>{to}</span><strong>{formatMoney(Number(value))}</strong></div>
               ))}
             </section>
