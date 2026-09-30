@@ -1,230 +1,507 @@
 "use client";
 
 import {
-  ArrowRight,
-  ChevronDown,
-  CircleGauge,
-  Factory,
-  Headphones,
+  Activity,
+  BadgeDollarSign,
+  Banknote,
+  BarChart3,
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  Crown,
+  Gavel,
+  Globe2,
+  Handshake,
+  Home,
+  Landmark,
   Menu,
-  Play,
+  MessageSquareText,
   Search,
-  ShieldCheck,
-  Truck,
-  Wrench,
+  Shield,
+  Star,
+  Trophy,
+  TrendingUp,
+  UserRound,
+  Users,
+  WalletCards,
   X,
+  Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const products = [
-  { name: "Transportador de Corrente", model: "TCLS 5060", text: "Praticidade, segurança e economia no transporte." },
-  { name: "Rolo Faca Green", model: "6000 e 9000", text: "Potência, robustez e resultado no campo." },
-  { name: "Green Digger", model: "1200", text: "Transforme áreas encharcadas em terra produtiva." },
-  { name: "Guincho", model: "GHS-2000", text: "Força, segurança e agilidade para trabalho pesado." },
-  { name: "Lâminas Niveladoras", model: "LNR I, II e II-H", text: "Três modelos para diferentes necessidades." },
-  { name: "Limpadeira de Valo", model: "Hidráulica", text: "Mais agilidade na limpeza e manutenção de valos." },
-  { name: "Grade de Rolos", model: "Incorporadora TR", text: "Eficiência e versatilidade no preparo do solo." },
-  { name: "Rolo Faca", model: "RFS Arrozeiro", text: "Robusto, eficiente e de baixa manutenção." },
+type Screen =
+  | "inicio"
+  | "jogadores"
+  | "talentos"
+  | "negociacoes"
+  | "mercado"
+  | "clubes"
+  | "competicoes"
+  | "financas"
+  | "agencia"
+  | "federacao"
+  | "partida";
+
+type CareerPreset = "zero" | "promessa" | "ex-jogador" | "herdeiro";
+
+type Player = {
+  name: string;
+  age: number;
+  pos: string;
+  club: string;
+  country: string;
+  ger: number;
+  pot: number;
+  value: number;
+  salary: number;
+  relation: number;
+  agent: boolean;
+};
+
+const initialPlayers: Player[] = [
+  { name: "Endrick", age: 20, pos: "ATA", club: "Real Madrid", country: "BR", ger: 82, pot: 92, value: 60000000, salary: 150000, relation: 84, agent: true },
+  { name: "Estêvão", age: 19, pos: "PD", club: "Chelsea", country: "BR", ger: 80, pot: 91, value: 52000000, salary: 105000, relation: 68, agent: false },
+  { name: "Lamine Yamal", age: 19, pos: "PD", club: "Barcelona", country: "ES", ger: 91, pot: 96, value: 180000000, salary: 220000, relation: 34, agent: false },
+  { name: "Vini Jr.", age: 26, pos: "PE", club: "Real Madrid", country: "BR", ger: 92, pot: 93, value: 180000000, salary: 410000, relation: 41, agent: false },
+  { name: "Rodrygo", age: 25, pos: "ATA", club: "Real Madrid", country: "BR", ger: 87, pot: 89, value: 110000000, salary: 280000, relation: 54, agent: true },
+  { name: "Jude Bellingham", age: 23, pos: "MC", club: "Real Madrid", country: "EN", ger: 91, pot: 94, value: 180000000, salary: 350000, relation: 28, agent: false },
+  { name: "Florian Wirtz", age: 23, pos: "MEI", club: "Liverpool", country: "DE", ger: 89, pot: 93, value: 140000000, salary: 260000, relation: 21, agent: false },
+  { name: "Pedri", age: 23, pos: "MC", club: "Barcelona", country: "ES", ger: 88, pot: 92, value: 120000000, salary: 240000, relation: 38, agent: false },
+  { name: "João Pedro", age: 24, pos: "ATA", club: "Chelsea", country: "BR", ger: 84, pot: 88, value: 72000000, salary: 190000, relation: 62, agent: true },
+  { name: "Kaio César", age: 22, pos: "PD", club: "Al Hilal", country: "BR", ger: 78, pot: 84, value: 25000000, salary: 120000, relation: 73, agent: true },
 ];
 
-const tech = [
-  ["Chassi e estrutura", "Construção pensada para operações exigentes no campo."],
-  ["Sistema hidráulico", "Comandos e cilindros integrados à rotina de trabalho."],
-  ["Componentes de solo", "Discos, facas e conjuntos voltados ao desempenho."],
-  ["Manutenção", "Acesso visual aos principais conjuntos e pontos de serviço."],
+const clubs = [
+  { name: "Real Madrid", country: "Espanha", rep: 99, budget: 420000000, squad: 92, interest: "Endrick" },
+  { name: "Barcelona", country: "Espanha", rep: 96, budget: 175000000, squad: 89, interest: "Estêvão" },
+  { name: "Liverpool", country: "Inglaterra", rep: 95, budget: 230000000, squad: 90, interest: "Rodrygo" },
+  { name: "Chelsea", country: "Inglaterra", rep: 92, budget: 315000000, squad: 87, interest: "Lamine Yamal" },
+  { name: "Palmeiras", country: "Brasil", rep: 88, budget: 78000000, squad: 82, interest: "Kaio César" },
+  { name: "Flamengo", country: "Brasil", rep: 89, budget: 92000000, squad: 83, interest: "João Pedro" },
 ];
 
-export default function Home() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeTech, setActiveTech] = useState(0);
+const transfers = [
+  ["K. Mbappé", "Real Madrid", "Liverpool", 180000000],
+  ["V. Osimhen", "Galatasaray", "Chelsea", 120000000],
+  ["Bruno Guimarães", "Newcastle", "PSG", 95000000],
+  ["Rafael Leão", "Milan", "Bayern", 90000000],
+  ["Dani Olmo", "Barcelona", "Manchester City", 75000000],
+];
+
+const table = [
+  ["Palmeiras", 18, 40],
+  ["Flamengo", 18, 38],
+  ["Botafogo", 18, 37],
+  ["Fortaleza", 18, 34],
+  ["São Paulo", 18, 32],
+  ["Internacional", 18, 31],
+  ["Cruzeiro", 18, 30],
+  ["Bahia", 18, 29],
+];
+
+const newsPool = [
+  "Real Madrid monitora um dos seus clientes.",
+  "Novo talento brasileiro entra no radar de clubes europeus.",
+  "Janela de transferências esquenta após rodada movimentada.",
+  "Patrocinador procura atletas com alto alcance internacional.",
+  "Clube inglês prepara proposta por atacante sul-americano.",
+  "Federação discute novas regras para registro de atletas.",
+];
+
+const formatMoney = (value: number) => {
+  if (value >= 1_000_000_000) return `€ ${(value / 1_000_000_000).toFixed(1)} bi`;
+  if (value >= 1_000_000) return `€ ${(value / 1_000_000).toFixed(value % 1_000_000 === 0 ? 0 : 1)} mi`;
+  return `€ ${value.toLocaleString("pt-BR")}`;
+};
+
+const navItems = [
+  ["inicio", "Início", Home],
+  ["jogadores", "Meus jogadores", Users],
+  ["talentos", "Talentos", Star],
+  ["negociacoes", "Negociações", Handshake],
+  ["mercado", "Mercado", TrendingUp],
+  ["clubes", "Clubes", Shield],
+  ["competicoes", "Competições", Trophy],
+  ["financas", "Finanças", BadgeDollarSign],
+  ["agencia", "Agência", BriefcaseBusiness],
+  ["federacao", "Federação", Landmark],
+] as const;
+
+const presets: Record<CareerPreset, { title: string; desc: string; money: number; rep: number; clients: number }> = {
+  zero: { title: "Do zero", desc: "Sem nome, pouca grana e nenhum atalho.", money: 25000, rep: 5, clients: 1 },
+  promessa: { title: "Agente promissor", desc: "Uma pequena carteira e contatos regionais.", money: 180000, rep: 18, clients: 3 },
+  "ex-jogador": { title: "Ex-jogador", desc: "Reputação inicial e portas abertas em clubes.", money: 650000, rep: 32, clients: 4 },
+  herdeiro: { title: "Herdeiro da agência", desc: "Capital, estrutura e pressão por resultados.", money: 2500000, rep: 48, clients: 5 },
+};
+
+export default function HomePage() {
+  const [careerStarted, setCareerStarted] = useState(false);
+  const [preset, setPreset] = useState<CareerPreset>("promessa");
+  const [screen, setScreen] = useState<Screen>("inicio");
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [week, setWeek] = useState(12);
+  const [season, setSeason] = useState(2026);
+  const [money, setMoney] = useState(180000);
+  const [reputation, setReputation] = useState(18);
+  const [players, setPlayers] = useState(initialPlayers);
+  const [news, setNews] = useState(newsPool.slice(0, 4));
+  const [advanceMode, setAdvanceMode] = useState<"dia" | "semana" | "mes">("semana");
+  const [selectedPlayer, setSelectedPlayer] = useState<Player>(initialPlayers[0]);
+  const [offerSalary, setOfferSalary] = useState(150000);
+  const [offerYears, setOfferYears] = useState(5);
+  const [offerCommission, setOfferCommission] = useState(10);
+  const [matchMinute, setMatchMinute] = useState(62);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("agent-fc-save-v1");
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      setCareerStarted(Boolean(saved.careerStarted));
+      setPreset(saved.preset ?? "promessa");
+      setWeek(saved.week ?? 12);
+      setSeason(saved.season ?? 2026);
+      setMoney(saved.money ?? 180000);
+      setReputation(saved.reputation ?? 18);
+      setPlayers(saved.players ?? initialPlayers);
+      setNews(saved.news ?? newsPool.slice(0, 4));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("agent-fc-save-v1", JSON.stringify({
+      careerStarted, preset, week, season, money, reputation, players, news,
+    }));
+  }, [careerStarted, preset, week, season, money, reputation, players, news]);
+
+  const myPlayers = useMemo(() => players.filter((p) => p.agent), [players]);
+  const clientValue = myPlayers.reduce((sum, p) => sum + p.value, 0);
+
+  function startCareer() {
+    const start = presets[preset];
+    setMoney(start.money);
+    setReputation(start.rep);
+    setPlayers((current) => current.map((p, i) => ({ ...p, agent: i < start.clients })));
+    setCareerStarted(true);
+  }
+
+  function advanceTime() {
+    const steps = advanceMode === "dia" ? 1 : advanceMode === "semana" ? 7 : 28;
+    let nextWeek = week + Math.max(1, Math.round(steps / 7));
+    let nextSeason = season;
+    if (nextWeek > 52) {
+      nextWeek = nextWeek % 52 || 52;
+      nextSeason += 1;
+    }
+    const commission = myPlayers.reduce((sum, p) => sum + Math.round(p.salary * 0.02), 0);
+    const expenses = 18500 + reputation * 330;
+    setWeek(nextWeek);
+    setSeason(nextSeason);
+    setMoney((m) => Math.max(0, m + commission - expenses));
+    setReputation((r) => Math.min(100, r + (Math.random() > 0.63 ? 1 : 0)));
+    setNews((current) => [newsPool[Math.floor(Math.random() * newsPool.length)], ...current].slice(0, 5));
+    setPlayers((current) => current.map((p) => ({
+      ...p,
+      relation: Math.min(100, Math.max(1, p.relation + (Math.random() > 0.52 ? 1 : -1))),
+    })));
+  }
+
+  function signPlayer(player: Player) {
+    if (player.agent) return;
+    const fee = Math.max(25000, Math.round(player.value * 0.0005));
+    if (money < fee) return;
+    setMoney((m) => m - fee);
+    setPlayers((current) => current.map((p) => p.name === player.name ? { ...p, agent: true, relation: Math.max(p.relation, 70) } : p));
+    setNews((current) => [`${player.name} assinou contrato de representação com sua agência.`, ...current].slice(0, 5));
+  }
+
+  if (!careerStarted) {
+    return (
+      <main className="career-shell">
+        <section className="career-card">
+          <div className="brand-lockup">
+            <span className="brand-ball">⚽</span>
+            <div><b>FOOTBALL AGENT</b><small>CARREIRA • NEGÓCIOS • PODER</small></div>
+          </div>
+          <div className="career-intro">
+            <span>NOVA CARREIRA</span>
+            <h1>Escolha como sua história começa.</h1>
+            <p>O começo muda seu caixa, reputação, carteira de atletas e dificuldade. Depois, o mundo segue vivo temporada após temporada.</p>
+          </div>
+          <div className="preset-grid">
+            {(Object.keys(presets) as CareerPreset[]).map((key) => {
+              const item = presets[key];
+              return (
+                <button key={key} className={preset === key ? "preset active" : "preset"} onClick={() => setPreset(key)}>
+                  <span className="preset-radio">{preset === key ? "●" : "○"}</span>
+                  <strong>{item.title}</strong>
+                  <small>{item.desc}</small>
+                  <div><b>{formatMoney(item.money)}</b><span>REP {item.rep}</span><span>{item.clients} cliente(s)</span></div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="career-settings">
+            <div><Globe2 /><span><b>Mundo</b><small>Brasil + principais ligas internacionais</small></span></div>
+            <div><Clock3 /><span><b>Ritmo livre</b><small>Avance por dia, semana ou mês</small></span></div>
+            <div><Activity /><span><b>Simulação ativa</b><small>Mercado, clubes, atletas e finanças evoluem</small></span></div>
+          </div>
+          <button className="primary giant" onClick={startCareer}>COMEÇAR CARREIRA <ChevronRight /></button>
+        </section>
+      </main>
+    );
+  }
+
+  const screenTitle = navItems.find(([key]) => key === screen)?.[1] ?? "Football Agent";
 
   return (
-    <main>
-      <header className="site-header">
-        <a className="brand" href="#inicio" aria-label="Scarabelot">
-          <span className="brand-symbol" aria-hidden="true">
-            <span className="blue-piece" />
-            <span className="red-piece" />
-          </span>
-          <span className="brand-name">Scarabelot</span>
-        </a>
-
-        <nav className={mobileOpen ? "nav nav-open" : "nav"}>
-          <a href="#produtos">Produtos <ChevronDown size={14} /></a>
-          <a href="#tecnologia">Tecnologia</a>
-          <a href="#empresa">A Scarabelot</a>
-          <a href="#pos-venda">Pós-venda</a>
-          <a href="#conteudos">Conteúdos</a>
-          <a href="#contato">Contato</a>
-        </nav>
-
-        <div className="header-actions">
-          <label className="search-box">
-            <Search size={18} />
-            <input aria-label="Buscar implementos" placeholder="Buscar implementos, peças..." />
-          </label>
-          <a className="btn btn-red compact" href="#contato">Solicitar orçamento <ArrowRight size={17} /></a>
-        </div>
-
-        <button className="menu-button" onClick={() => setMobileOpen(v => !v)} aria-label="Abrir menu">
-          {mobileOpen ? <X /> : <Menu />}
-        </button>
+    <main className="game-shell">
+      <header className="topbar">
+        <button className="mobile-trigger" onClick={() => setMobileMenu(true)}><Menu /></button>
+        <div className="game-brand"><span>⚽</span><b>FOOTBALL AGENT</b></div>
+        <div className="top-stat money"><Banknote /><span><small>Saldo</small><b>{formatMoney(money)}</b></span></div>
+        <div className="top-stat"><Star /><span><small>Reputação</small><b>{reputation}/100</b></span></div>
+        <div className="top-stat"><CalendarDays /><span><small>Temporada</small><b>Semana {week} • {season}</b></span></div>
+        <button className="message-button"><MessageSquareText /><span>3</span></button>
       </header>
 
-      <section className="hero" id="inicio">
-        <div className="hero-copy">
-          <span className="eyebrow">DO SOLO BRASILEIRO PARA GRANDES RESULTADOS</span>
-          <h1>ENGENHARIA QUE<br />TRANSFORMA<br /><strong>A TERRA.</strong></h1>
-          <p>Robustez, tecnologia e desempenho no campo para quem faz o agro acontecer.</p>
-          <div className="hero-actions">
-            <a className="btn btn-red" href="#produtos"><Search size={18} /> Encontrar meu implemento <ArrowRight size={18} /></a>
-            <a className="btn btn-outline" href="#tecnologia"><CircleGauge size={18} /> Ver tecnologia</a>
-            <button className="btn btn-outline"><Play size={18} /> Assistir em campo</button>
+      <div className="game-layout">
+        <aside className={mobileMenu ? "sidebar open" : "sidebar"}>
+          <div className="sidebar-head">
+            <div className="agent-avatar"><UserRound /></div>
+            <div><b>Seu Nome</b><small>Agente • Nível {Math.max(1, Math.floor(reputation / 5))}</small></div>
+            <button onClick={() => setMobileMenu(false)}><X /></button>
           </div>
-          <div className="hero-metrics">
-            <div><strong>Desde 1991</strong><span>experiência no agro</span></div>
-            <div><strong>Brasil</strong><span>engenharia para o campo</span></div>
-            <div><strong>Pós-venda</strong><span>suporte especializado</span></div>
-          </div>
-        </div>
 
-        <div className="hero-product" aria-label="Implementos Scarabelot">
-          <div className="hero-product-image sprite sprite-2" />
-          <div className="hero-product-shade" />
-          <div className="hero-product-copy">
-            <span>DESTAQUE SCARABELOT</span>
-            <h2>Rolo Faca Green</h2>
-            <p>Visual real do produto, sem ilustração genérica.</p>
-          </div>
-          <div className="hero-tag tag-one">ROBUSTEZ</div>
-          <div className="hero-tag tag-two">CAMPO</div>
-        </div>
-
-        <aside className="hero-side">
-          <span>DIFERENCIAIS <b>SCARABELOT</b></span>
-          <div><ShieldCheck /><p><strong>Alta resistência</strong><small>Projetado para operações exigentes.</small></p></div>
-          <div><CircleGauge /><p><strong>Tecnologia de campo</strong><small>Mais produtividade e eficiência.</small></p></div>
-          <div><Wrench /><p><strong>Manutenção facilitada</strong><small>Mais praticidade no dia a dia.</small></p></div>
-        </aside>
-      </section>
-
-      <section className="technology" id="tecnologia">
-        <div className="tech-copy">
-          <span className="eyebrow blue">TECNOLOGIA POR DENTRO</span>
-          <h2>Veja o implemento em <b>detalhes.</b></h2>
-          <p>Em vez de desenhar uma máquina falsa em CSS, esta área usa a imagem do produto e prepara a experiência para o exploded view 3D real.</p>
-
-          <div className="tech-list">
-            {tech.map(([title, text], index) => (
-              <button key={title} onClick={() => setActiveTech(index)} className={activeTech === index ? "tech-item active" : "tech-item"}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div><strong>{title}</strong><small>{text}</small></div>
-                <ArrowRight size={18} />
+          <nav>
+            {navItems.map(([key, label, Icon]) => (
+              <button key={key} className={screen === key ? "active" : ""} onClick={() => { setScreen(key as Screen); setMobileMenu(false); }}>
+                <Icon /><span>{label}</span>
+                {key === "jogadores" && <em>{myPlayers.length}</em>}
+                {key === "negociacoes" && <em>3</em>}
+                <ChevronRight className="chev" />
               </button>
             ))}
-          </div>
-        </div>
+          </nav>
 
-        <div className="tech-visual">
-          <div className="tech-machine sprite sprite-2" />
-          <button className="tech-hotspot hs-1" onClick={() => setActiveTech(0)}>+</button>
-          <button className="tech-hotspot hs-2" onClick={() => setActiveTech(1)}>+</button>
-          <button className="tech-hotspot hs-3" onClick={() => setActiveTech(2)}>+</button>
-          <button className="tech-hotspot hs-4" onClick={() => setActiveTech(3)}>+</button>
-          <div className="tech-caption">
-            <span>{String(activeTech + 1).padStart(2, "0")} / 04</span>
-            <strong>{tech[activeTech][0]}</strong>
-            <p>{tech[activeTech][1]}</p>
+          <div className="sidebar-career">
+            <span>CARREIRA</span>
+            <div><small>Prestígio global</small><b>{reputation}%</b></div>
+            <progress value={reputation} max={100} />
+            <small>Objetivo: assumir um clube e conquistar influência suficiente para disputar o controle de uma federação.</small>
           </div>
-        </div>
-      </section>
+        </aside>
 
-      <section className="product-section" id="produtos">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow blue">PORTFÓLIO</span>
-            <h2>Linha de implementos <b>Scarabelot</b></h2>
+        <section className="content">
+          <div className="content-head">
+            <div><small>CARREIRA / {screenTitle.toUpperCase()}</small><h1>{screenTitle}</h1></div>
+            <label className="search"><Search /><input placeholder="Buscar jogador, clube, país..." /></label>
           </div>
-          <a href="#contato">Ver todos os produtos <ArrowRight size={17} /></a>
-        </div>
 
-        <div className="product-scroll">
-          {products.map((product, index) => (
-            <article className="product-card" key={product.name + product.model}>
-              <div className={"product-photo sprite sprite-" + (index + 1)}>
-                <span className="photo-label">{product.model}</span>
+          {screen === "inicio" && (
+            <>
+              <section className="dashboard-grid">
+                <article className="profile-card panel">
+                  <div className="panel-title"><span><UserRound /> MEU AGENTE</span><em>ONLINE</em></div>
+                  <div className="profile-main">
+                    <div className="agent-avatar big"><UserRound /></div>
+                    <div><h2>Seu Nome</h2><p>Agente de futebol • Brasil</p><div className="level-row"><b>Nível {Math.max(1, Math.floor(reputation / 5))}</b><progress value={reputation} max={100} /><span>{reputation}/100 REP</span></div></div>
+                  </div>
+                  <div className="kpi-row">
+                    <div><small>CLIENTES</small><b>{myPlayers.length}</b></div>
+                    <div><small>VALOR DA CARTEIRA</small><b>{formatMoney(clientValue)}</b></div>
+                    <div><small>RELAÇÕES</small><b>78</b></div>
+                  </div>
+                </article>
+
+                <article className="advance-card panel">
+                  <div><CalendarDays /><span><small>SEMANA ATUAL</small><b>Semana {week}</b><em>Temporada {season}</em></span></div>
+                  <select value={advanceMode} onChange={(e) => setAdvanceMode(e.target.value as typeof advanceMode)}>
+                    <option value="dia">Avançar 1 dia</option>
+                    <option value="semana">Avançar 1 semana</option>
+                    <option value="mes">Avançar 1 mês</option>
+                  </select>
+                  <button className="primary advance" onClick={advanceTime}>AVANÇAR TEMPO <ChevronRight /></button>
+                  <small>O mercado, contratos, partidas e finanças serão simulados.</small>
+                </article>
+              </section>
+
+              <section className="home-columns">
+                <article className="panel news-panel">
+                  <div className="panel-title"><span><Zap /> NOTÍCIAS</span><button>Ver todas</button></div>
+                  {news.map((item, index) => (
+                    <button className="news-item" key={index}>
+                      <span className="news-icon">{index === 0 ? "🔥" : index === 1 ? "⚽" : "📰"}</span>
+                      <div><b>{item}</b><small>{index === 0 ? "Agora" : `${index + 1}h atrás`}</small></div>
+                      <ChevronRight />
+                    </button>
+                  ))}
+                </article>
+
+                <article className="panel table-panel">
+                  <div className="panel-title"><span><Trophy /> BRASILEIRÃO SÉRIE A</span><em>RODADA 18</em></div>
+                  <div className="league-table">
+                    <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>PTS</span></div>
+                    {table.slice(0, 6).map(([club, games, pts], i) => (
+                      <div className="tr" key={club}><span>{i + 1}</span><span><i className="crest">{String(club).slice(0, 1)}</i>{club}</span><span>{games}</span><b>{pts}</b></div>
+                    ))}
+                  </div>
+                  <button className="secondary full" onClick={() => setScreen("competicoes")}>Ver competição completa</button>
+                </article>
+              </section>
+
+              <section className="quick-grid">
+                {[
+                  ["jogadores", Users, "Meus jogadores", `${myPlayers.length} atletas representados`],
+                  ["talentos", Star, "Talentos", "Descubra a próxima estrela"],
+                  ["negociacoes", Handshake, "Negociações", "3 conversas em andamento"],
+                  ["mercado", TrendingUp, "Mercado", "Transferências e oportunidades"],
+                  ["agencia", Building2, "Minha agência", "Equipe, escritório e rede"],
+                  ["financas", WalletCards, "Finanças", "Receitas, despesas e patrimônio"],
+                ].map(([key, Icon, title, desc]) => (
+                  <button className="quick-card" key={String(key)} onClick={() => setScreen(key as Screen)}>
+                    <span><Icon /></span><div><b>{String(title)}</b><small>{String(desc)}</small></div><ChevronRight />
+                  </button>
+                ))}
+              </section>
+            </>
+          )}
+
+          {screen === "jogadores" && (
+            <section className="panel data-screen">
+              <div className="tabs"><button className="active">Todos ({myPlayers.length})</button><button>Principal</button><button>Em negociação</button><button>Emprestados</button></div>
+              <div className="player-list head"><span>Jogador</span><span>Idade</span><span>Pos.</span><span>GER</span><span>POT</span><span>Valor</span><span>Relação</span></div>
+              {myPlayers.map((p) => (
+                <button className="player-list" key={p.name} onClick={() => { setSelectedPlayer(p); setScreen("negociacoes"); }}>
+                  <span className="player-name"><i>{p.country}</i><span><b>{p.name}</b><small>{p.club}</small></span></span>
+                  <span>{p.age}</span><span>{p.pos}</span><strong className="rating">{p.ger}</strong><strong className="rating pot">{p.pot}</strong><b>{formatMoney(p.value)}</b><span>{p.relation}%</span>
+                </button>
+              ))}
+            </section>
+          )}
+
+          {screen === "talentos" && (
+            <section className="panel data-screen">
+              <div className="filterbar"><button className="active">Todos</button><button>Observados</button><button>Recomendados</button><select><option>Todos os países</option><option>Brasil</option><option>Inglaterra</option><option>Espanha</option></select><select><option>16 - 21 anos</option><option>22 - 25 anos</option></select></div>
+              <div className="player-list head"><span>Jogador</span><span>Idade</span><span>Pos.</span><span>GER</span><span>POT</span><span>Valor</span><span>Ação</span></div>
+              {players.filter((p) => p.age <= 23).map((p) => (
+                <div className="player-list" key={p.name}>
+                  <span className="player-name"><i>{p.country}</i><span><b>{p.name}</b><small>{p.club}</small></span></span>
+                  <span>{p.age}</span><span>{p.pos}</span><strong className="rating">{p.ger}</strong><strong className="rating pot">{p.pot}</strong><b>{formatMoney(p.value)}</b>
+                  <button className={p.agent ? "mini disabled" : "mini"} onClick={() => signPlayer(p)}>{p.agent ? "Cliente" : "Abordar"}</button>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {screen === "negociacoes" && (
+            <section className="negotiation-layout">
+              <article className="panel player-profile">
+                <div className="player-hero"><div className="photo-placeholder"><UserRound /></div><div><span>{selectedPlayer.country} • {selectedPlayer.pos}</span><h2>{selectedPlayer.name}</h2><p>{selectedPlayer.club}</p></div><strong className="rating xl">{selectedPlayer.ger}<small>GER</small></strong></div>
+                <div className="profile-stats"><div><small>Idade</small><b>{selectedPlayer.age}</b></div><div><small>Valor</small><b>{formatMoney(selectedPlayer.value)}</b></div><div><small>Potencial</small><b>{selectedPlayer.pot}</b></div><div><small>Relação</small><b>{selectedPlayer.relation}%</b></div></div>
+                <div className="relationship"><span>Relação com o atleta</span><b>{selectedPlayer.relation}%</b><progress value={selectedPlayer.relation} max={100} /></div>
+              </article>
+
+              <article className="panel contract-card">
+                <div className="panel-title"><span><Handshake /> NEGOCIAÇÃO DE CONTRATO</span><em>CLUBE INTERESSADO</em></div>
+                <h3>Monte a proposta</h3>
+                <div className="offer-row"><span>Salário semanal</span><button onClick={() => setOfferSalary(Math.max(10000, offerSalary - 10000))}>−</button><b>{formatMoney(offerSalary)}</b><button onClick={() => setOfferSalary(offerSalary + 10000)}>+</button></div>
+                <div className="offer-row"><span>Duração</span><button onClick={() => setOfferYears(Math.max(1, offerYears - 1))}>−</button><b>{offerYears} anos</b><button onClick={() => setOfferYears(Math.min(8, offerYears + 1))}>+</button></div>
+                <div className="offer-row"><span>Comissão do agente</span><button onClick={() => setOfferCommission(Math.max(1, offerCommission - 1))}>−</button><b>{offerCommission}%</b><button onClick={() => setOfferCommission(Math.min(20, offerCommission + 1))}>+</button></div>
+                <div className="clauses"><span>Cláusulas</span><button>+ Bônus por títulos</button><button>+ Bônus por jogos</button><button>+ Cláusula de rescisão</button></div>
+                <button className="primary giant" onClick={() => setNews((n) => [`Proposta enviada por ${selectedPlayer.name}: ${formatMoney(offerSalary)}/semana, ${offerYears} anos.`, ...n].slice(0, 5))}>ENVIAR PROPOSTA</button>
+              </article>
+            </section>
+          )}
+
+          {screen === "mercado" && (
+            <section className="panel data-screen">
+              <div className="tabs"><button className="active">Transferências</button><button>Propostas</button><button>Empréstimos</button><button>Agentes rivais</button></div>
+              <div className="market-head"><span>Jogador</span><span>De</span><span></span><span>Para</span><span>Valor</span></div>
+              {transfers.map(([player, from, to, value]) => (
+                <div className="market-row" key={String(player)}><b>{player}</b><span>{from}</span><ChevronRight /><span>{to}</span><strong>{formatMoney(Number(value))}</strong></div>
+              ))}
+            </section>
+          )}
+
+          {screen === "clubes" && (
+            <section className="club-grid">
+              {clubs.map((club) => (
+                <article className="club-card panel" key={club.name}>
+                  <div className="club-top"><i className="club-logo">{club.name.slice(0, 2).toUpperCase()}</i><div><h3>{club.name}</h3><p>{club.country}</p></div><span>REP {club.rep}</span></div>
+                  <div className="club-metrics"><div><small>Elenco</small><b>{club.squad}</b></div><div><small>Orçamento</small><b>{formatMoney(club.budget)}</b></div></div>
+                  <div className="club-interest"><Search /><span><small>Monitorando</small><b>{club.interest}</b></span></div>
+                  <button className="secondary full">Abrir clube</button>
+                </article>
+              ))}
+            </section>
+          )}
+
+          {screen === "competicoes" && (
+            <section className="panel data-screen">
+              <div className="competition-header"><span className="cup">🏆</span><div><small>BRASIL</small><h2>Brasileirão Série A</h2><p>Temporada {season}</p></div><button className="secondary">Resultados</button></div>
+              <div className="league-table large">
+                <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>PTS</span></div>
+                {table.map(([club, games, pts], i) => (
+                  <div className="tr" key={club}><span>{i + 1}</span><span><i className="crest">{String(club).slice(0, 1)}</i>{club}</span><span>{games}</span><span>{12 - Math.floor(i / 2)}</span><span>{4 + (i % 2)}</span><span>{2 + Math.floor(i / 3)}</span><b>{pts}</b></div>
+                ))}
               </div>
-              <div className="product-body">
-                <small>{product.model}</small>
-                <h3>{product.name}</h3>
-                <p>{product.text}</p>
-                <a href="#contato">Ver detalhes <ArrowRight size={16} /></a>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+            </section>
+          )}
 
-      <section className="results">
-        <div className="results-photo sprite sprite-7">
-          <div className="results-overlay">
-            <span>DESEMPENHO REAL NO CAMPO</span>
-            <h2>IMPLEMENTOS QUE<br />ENTREGAM <b>RESULTADOS.</b></h2>
-            <p>Soluções para preparo do solo, manejo, drenagem e transporte.</p>
-            <a className="btn btn-red" href="#produtos">Ver linha de implementos <ArrowRight size={17} /></a>
-          </div>
-        </div>
+          {screen === "financas" && (
+            <section className="finance-grid">
+              <article className="balance-card panel"><small>SALDO ATUAL</small><h2>{formatMoney(money)}</h2><div><span><small>Receita semanal</small><b>+ {formatMoney(myPlayers.reduce((sum,p)=>sum+Math.round(p.salary*.02),0))}</b></span><span><small>Despesa semanal</small><b className="loss">- {formatMoney(18500 + reputation*330)}</b></span></div></article>
+              <article className="panel transactions"><div className="panel-title"><span><CircleDollarSign /> ÚLTIMAS MOVIMENTAÇÕES</span></div>{myPlayers.slice(0,4).map((p,i)=><div key={p.name}><span>Comissão • {p.name}</span><b>+ {formatMoney(Math.round(p.salary*.02))}</b></div>)}<div><span>Funcionários da agência</span><b className="loss">- {formatMoney(14500)}</b></div><div><span>Escritório e operações</span><b className="loss">- {formatMoney(8500)}</b></div></article>
+            </section>
+          )}
 
-        <div className="commercial-cards">
-          <article className="commercial-card blue-card">
-            <CircleGauge />
-            <span>SEU PROJETO NO CAMPO</span>
-            <h3>Financiamento<br />facilitado</h3>
-            <p>Espaço direto para apresentar condições comerciais e gerar oportunidades.</p>
-            <a href="#contato">Simular financiamento <ArrowRight size={16} /></a>
-          </article>
+          {screen === "agencia" && (
+            <section className="agency-grid">
+              <article className="panel agency-level"><div className="agency-icon"><Building2 /></div><div><small>MINHA AGÊNCIA</small><h2>Nível {Math.max(1, Math.floor(reputation/5))}</h2><p>Expanda sua estrutura, contrate especialistas e aumente seu alcance global.</p><progress value={reputation} max={100} /></div></article>
+              {[
+                ["Funcionários", Users, "8/12", "Agentes, assistentes e gestores"],
+                ["Olheiros", Search, "Nível 4", "Rede global de observação"],
+                ["Advogados", Gavel, "Nível 3", "Contratos e negociações complexas"],
+                ["Marketing", BarChart3, "Nível 2", "Imagem, marcas e patrocinadores"],
+                ["Escritório", Building2, "Nível 4", "Estrutura e capacidade operacional"],
+                ["Rede de contatos", Globe2, "78", "Clubes, marcas e dirigentes"],
+              ].map(([title, Icon, level, desc]) => <button className="agency-module panel" key={String(title)}><Icon /><span><b>{String(title)}</b><small>{String(desc)}</small></span><strong>{String(level)}</strong><ChevronRight /></button>)}
+              <article className="panel power-path"><div className="panel-title"><span><Crown /> CAMINHO DO PODER</span></div><div className="power-steps"><div className="done"><i>1</i><span><b>Agente</b><small>Construa sua carteira</small></span></div><div className={reputation >= 45 ? "done" : ""}><i>2</i><span><b>Investidor</b><small>Compre participações</small></span></div><div className={reputation >= 70 ? "done" : ""}><i>3</i><span><b>Presidente de clube</b><small>Assuma uma instituição</small></span></div><div className={reputation >= 90 ? "done" : ""}><i>4</i><span><b>Controle da federação</b><small>Influencie o futebol nacional</small></span></div></div></article>
+            </section>
+          )}
 
-          <article className="commercial-card red-card">
-            <Truck />
-            <span>DISPONIBILIDADE</span>
-            <h3>Entrega imediata<br />ou a combinar</h3>
-            <p>Conexão rápida com o time comercial para disponibilidade e condições.</p>
-            <a href="#contato">Falar com consultor <ArrowRight size={16} /></a>
-          </article>
+          {screen === "federacao" && (
+            <section className="federation panel">
+              <div className="federation-hero"><Landmark /><div><span>CARREIRA AVANÇADA</span><h2>Controle da Federação</h2><p>Construa apoio político no futebol, conquiste clubes aliados e chegue ao comando da federação.</p></div></div>
+              <div className="influence"><div><span><small>Reputação necessária</small><b>90</b></span><progress value={reputation} max={90} /><strong>{reputation >= 90 ? "Elegível" : `Faltam ${90-reputation} pontos`}</strong></div><div><span><small>Apoio de clubes</small><b>2 / 20</b></span><progress value={2} max={20} /><strong>10%</strong></div><div><span><small>Influência regional</small><b>18%</b></span><progress value={18} max={100} /><strong>Em crescimento</strong></div></div>
+              <div className="federation-actions"><button><Gavel /><span><b>Regulamentos</b><small>Defina regras e calendários</small></span></button><button><Banknote /><span><b>Distribuição financeira</b><small>Prêmios e receitas</small></span></button><button><Trophy /><span><b>Competições</b><small>Formato e expansão</small></span></button><button><Globe2 /><span><b>Relações internacionais</b><small>Acordos e torneios</small></span></button></div>
+            </section>
+          )}
 
-          <article className="commercial-card navy-card" id="pos-venda">
-            <Headphones />
-            <span>SEMPRE POR PERTO</span>
-            <h3>Suporte em<br />todo o Brasil</h3>
-            <p>Pós-venda, peças e assistência apresentados de forma simples.</p>
-            <a href="#contato">Encontrar assistência <ArrowRight size={16} /></a>
-          </article>
-        </div>
-      </section>
+          {screen === "partida" && (
+            <section className="match-layout">
+              <article className="panel match-panel">
+                <div className="scoreboard"><span>Palmeiras</span><b>2 <em>•</em> 1</b><span>Flamengo</span><small>2º TEMPO • {matchMinute}'</small></div>
+                <div className="pitch">
+                  {Array.from({length: 11}).map((_,i)=><i key={`g${i}`} className="dot green" style={{left:`${16 + (i%4)*17}%`, top:`${12 + Math.floor(i/4)*30 + (i%2)*8}%`}} />)}
+                  {Array.from({length: 11}).map((_,i)=><i key={`r${i}`} className="dot red" style={{right:`${16 + (i%4)*17}%`, top:`${16 + Math.floor(i/4)*28 + ((i+1)%2)*8}%`}} />)}
+                  <span className="ball">⚽</span>
+                </div>
+                <div className="match-controls"><button onClick={() => setMatchMinute((m)=>Math.min(90,m+1))}>Simular +1 min</button><button onClick={() => setMatchMinute((m)=>Math.min(90,m+5))}>+5 min</button><button className="primary" onClick={() => setMatchMinute(90)}>Até o fim</button></div>
+              </article>
+              <article className="panel events"><div className="panel-title"><span><Activity /> EVENTOS</span></div><div><b>12'</b><span>⚽ Gol • Palmeiras</span></div><div><b>34'</b><span>⚽ Gol • Flamengo</span></div><div><b>67'</b><span>🟨 Cartão amarelo</span></div><div><b>78'</b><span>⚽ Gol • Palmeiras</span></div></article>
+            </section>
+          )}
 
-      <section className="history" id="empresa">
-        <div className="history-copy">
-          <span className="eyebrow blue">NOSSA HISTÓRIA</span>
-          <h2>TRADIÇÃO QUE<br />IMPULSIONA O AGRO.</h2>
-          <p>A apresentação institucional ganha espaço próprio, com mais respiro e menos aparência de template.</p>
-          <a className="text-link" href="#contato">Conheça a Scarabelot <ArrowRight size={16} /></a>
-        </div>
-        <div className="history-panel">
-          <Factory size={46} />
-          <strong>DESDE 1991</strong>
-          <span>INDÚSTRIA BRASILEIRA</span>
-          <p>Engenharia, fabricação e soluções desenvolvidas para a rotina do produtor.</p>
-        </div>
-      </section>
-
-      <footer id="contato">
-        <a className="brand footer-brand" href="#inicio">
-          <span className="brand-symbol"><span className="blue-piece" /><span className="red-piece" /></span>
-          <span className="brand-name">Scarabelot</span>
-        </a>
-        <p>Projeto de modernização digital • Scarabelot Implementos</p>
-        <a className="btn btn-red compact" href="mailto:scarabelot@scarabelotimplementos.com.br">Entrar em contato <ArrowRight size={17} /></a>
-      </footer>
+          {screen !== "partida" && (
+            <button className="floating-match" onClick={() => setScreen("partida")}><span>AO VIVO</span><b>PAL 2 × 1 FLA</b><small>78' • Abrir partida 2D</small></button>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
