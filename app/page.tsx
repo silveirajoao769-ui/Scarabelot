@@ -32,7 +32,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { simulateWorld, type TransferRecord } from "./game-engine";
-import { createLeagueState, simulateLeagueWeeks, type LeagueState } from "./competition-engine";
+import { createLeagueState, createSecondDivisionState, rollDomesticSeason, simulateLeagueWeeks, type LeagueState } from "./competition-engine";
+import { createChampionsState, createLibertadoresState, simulateTournamentWeeks, type TournamentState } from "./continental-engine";
 
 type Screen =
   | "inicio"
@@ -149,6 +150,9 @@ export default function HomePage() {
   const [players, setPlayers] = useState(initialPlayers);
   const [transferHistory, setTransferHistory] = useState<TransferRecord[]>(initialTransfers);
   const [leagueState, setLeagueState] = useState<LeagueState>(() => createLeagueState(2026));
+  const [secondDivisionState, setSecondDivisionState] = useState<LeagueState>(() => createSecondDivisionState(2026));
+  const [libertadoresState, setLibertadoresState] = useState<TournamentState>(() => createLibertadoresState(2026));
+  const [championsState, setChampionsState] = useState<TournamentState>(() => createChampionsState(2026));
   const [news, setNews] = useState(newsPool.slice(0, 4));
   const [advanceMode, setAdvanceMode] = useState<"dia" | "semana" | "mes">("semana");
   const [selectedPlayer, setSelectedPlayer] = useState<Player>(initialPlayers[0]);
@@ -159,6 +163,7 @@ export default function HomePage() {
   const [matchMinute, setMatchMinute] = useState(62);
   const [marketTab, setMarketTab] = useState<"transferencias" | "propostas" | "emprestimos" | "agentes">("transferencias");
   const [competitionTab, setCompetitionTab] = useState<"classificacao" | "resultados" | "artilharia">("classificacao");
+  const [competitionView, setCompetitionView] = useState<"serie-a" | "serie-b" | "libertadores" | "champions">("serie-a");
 
   useEffect(() => {
     const raw = localStorage.getItem("agent-fc-save-v1");
@@ -175,21 +180,25 @@ export default function HomePage() {
       setPlayers(saved.players ?? initialPlayers);
       setTransferHistory(saved.transferHistory ?? initialTransfers);
       setLeagueState(saved.leagueState ?? createLeagueState(saved.season ?? 2026));
+      setSecondDivisionState(saved.secondDivisionState ?? createSecondDivisionState(saved.season ?? 2026));
+      setLibertadoresState(saved.libertadoresState ?? createLibertadoresState(saved.season ?? 2026));
+      setChampionsState(saved.championsState ?? createChampionsState(saved.season ?? 2026));
       setNews(saved.news ?? newsPool.slice(0, 4));
     } catch {}
   }, []);
 
   useEffect(() => {
     localStorage.setItem("agent-fc-save-v1", JSON.stringify({
-      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, news,
+      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, news,
     }));
-  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, news]);
+  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, news]);
 
   const myPlayers = useMemo(() => players.filter((p) => p.agent), [players]);
   const clientValue = myPlayers.reduce((sum, p) => sum + p.value, 0);
   const leagueLeader = leagueState.teams[0];
   const topScorer = leagueState.scorers[0];
-  const latestLeagueMatch = leagueState.recentResults[0];
+  const activeLeague = competitionView === "serie-b" ? secondDivisionState : leagueState;
+  const activeTournament = competitionView === "libertadores" ? libertadoresState : championsState;
 
   function startCareer() {
     const start = presets[preset];
@@ -197,6 +206,9 @@ export default function HomePage() {
     setReputation(start.rep);
     setPlayers((current) => current.map((p, i) => ({ ...p, agent: i < start.clients })));
     setLeagueState(createLeagueState(season));
+    setSecondDivisionState(createSecondDivisionState(season));
+    setLibertadoresState(createLibertadoresState(season));
+    setChampionsState(createChampionsState(season));
     setCareerStarted(true);
   }
 
@@ -221,13 +233,59 @@ export default function HomePage() {
     setPlayers(result.players as Player[]);
     setTransferHistory(result.transfers);
 
-    const leagueRun = simulateLeagueWeeks(
-      leagueState,
+    const seasonChanged = result.season !== season;
+    const brazilianQualifiers = leagueState.teams.slice(0, 8).map((team) => team.name);
+
+    let baseSerieA = leagueState;
+    let baseSerieB = secondDivisionState;
+    let transitionNews: string[] = [];
+
+    if (seasonChanged) {
+      const transition = rollDomesticSeason(
+        leagueState,
+        secondDivisionState,
+        result.season,
+      );
+      baseSerieA = transition.serieA;
+      baseSerieB = transition.serieB;
+      transitionNews = transition.news;
+    }
+
+    const serieARun = simulateLeagueWeeks(
+      baseSerieA,
       result.weeksProcessed,
       result.season,
     );
-    setLeagueState(leagueRun.state);
-    setNews((current) => [...leagueRun.news, ...result.news, ...current].slice(0, 10));
+    const serieBRun = simulateLeagueWeeks(
+      baseSerieB,
+      result.weeksProcessed,
+      result.season,
+    );
+    const libertadoresRun = simulateTournamentWeeks(
+      libertadoresState,
+      result.weeksProcessed,
+      result.season,
+      brazilianQualifiers,
+    );
+    const championsRun = simulateTournamentWeeks(
+      championsState,
+      result.weeksProcessed,
+      result.season,
+    );
+
+    setLeagueState(serieARun.state);
+    setSecondDivisionState(serieBRun.state);
+    setLibertadoresState(libertadoresRun.state);
+    setChampionsState(championsRun.state);
+    setNews((current) => [
+      ...transitionNews,
+      ...libertadoresRun.news,
+      ...championsRun.news,
+      ...serieARun.news,
+      ...serieBRun.news,
+      ...result.news,
+      ...current,
+    ].slice(0, 12));
   }
 
   function resolveContractOffer() {
