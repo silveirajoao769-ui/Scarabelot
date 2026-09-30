@@ -33,7 +33,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { simulateWorld, type TransferRecord } from "./game-engine";
 import { createLeagueState, createSecondDivisionState, rollDomesticSeason, simulateLeagueWeeks, type LeagueState } from "./competition-engine";
-import { createChampionsState, createLibertadoresState, simulateTournamentWeeks, type TournamentState } from "./continental-engine";
+import { createAfcState, createCafState, createChampionsState, createLibertadoresState, simulateTournamentWeeks, type TournamentState } from "./continental-engine";
+import { worldClubs, type ClubRegion } from "./world-clubs";
 
 type Screen =
   | "inicio"
@@ -75,15 +76,6 @@ const initialPlayers: Player[] = [
   { name: "Pedri", age: 23, pos: "MC", club: "Barcelona", country: "ES", ger: 88, pot: 92, value: 120000000, salary: 240000, relation: 38, agent: false },
   { name: "João Pedro", age: 24, pos: "ATA", club: "Chelsea", country: "BR", ger: 84, pot: 88, value: 72000000, salary: 190000, relation: 62, agent: true },
   { name: "Kaio César", age: 22, pos: "PD", club: "Al Hilal", country: "BR", ger: 78, pot: 84, value: 25000000, salary: 120000, relation: 73, agent: true },
-];
-
-const clubs = [
-  { name: "Real Madrid", country: "Espanha", rep: 99, budget: 420000000, squad: 92, interest: "Endrick" },
-  { name: "Barcelona", country: "Espanha", rep: 96, budget: 175000000, squad: 89, interest: "Estêvão" },
-  { name: "Liverpool", country: "Inglaterra", rep: 95, budget: 230000000, squad: 90, interest: "Rodrygo" },
-  { name: "Chelsea", country: "Inglaterra", rep: 92, budget: 315000000, squad: 87, interest: "Lamine Yamal" },
-  { name: "Palmeiras", country: "Brasil", rep: 88, budget: 78000000, squad: 82, interest: "Kaio César" },
-  { name: "Flamengo", country: "Brasil", rep: 89, budget: 92000000, squad: 83, interest: "João Pedro" },
 ];
 
 const initialTransfers: TransferRecord[] = [
@@ -153,6 +145,8 @@ export default function HomePage() {
   const [secondDivisionState, setSecondDivisionState] = useState<LeagueState>(() => createSecondDivisionState(2026));
   const [libertadoresState, setLibertadoresState] = useState<TournamentState>(() => createLibertadoresState(2026));
   const [championsState, setChampionsState] = useState<TournamentState>(() => createChampionsState(2026));
+  const [afcState, setAfcState] = useState<TournamentState>(() => createAfcState(2026));
+  const [cafState, setCafState] = useState<TournamentState>(() => createCafState(2026));
   const [news, setNews] = useState(newsPool.slice(0, 4));
   const [advanceMode, setAdvanceMode] = useState<"dia" | "semana" | "mes">("semana");
   const [selectedPlayer, setSelectedPlayer] = useState<Player>(initialPlayers[0]);
@@ -163,7 +157,8 @@ export default function HomePage() {
   const [matchMinute, setMatchMinute] = useState(62);
   const [marketTab, setMarketTab] = useState<"transferencias" | "propostas" | "emprestimos" | "agentes">("transferencias");
   const [competitionTab, setCompetitionTab] = useState<"classificacao" | "resultados" | "artilharia">("classificacao");
-  const [competitionView, setCompetitionView] = useState<"serie-a" | "serie-b" | "libertadores" | "champions">("serie-a");
+  const [competitionView, setCompetitionView] = useState<"serie-a" | "serie-b" | "libertadores" | "champions" | "afc" | "caf">("serie-a");
+  const [clubRegion, setClubRegion] = useState<"Todos" | ClubRegion>("Todos");
 
   useEffect(() => {
     const raw = localStorage.getItem("agent-fc-save-v1");
@@ -183,22 +178,25 @@ export default function HomePage() {
       setSecondDivisionState(saved.secondDivisionState ?? createSecondDivisionState(saved.season ?? 2026));
       setLibertadoresState(saved.libertadoresState ?? createLibertadoresState(saved.season ?? 2026));
       setChampionsState(saved.championsState ?? createChampionsState(saved.season ?? 2026));
+      setAfcState(saved.afcState ?? createAfcState(saved.season ?? 2026));
+      setCafState(saved.cafState ?? createCafState(saved.season ?? 2026));
       setNews(saved.news ?? newsPool.slice(0, 4));
     } catch {}
   }, []);
 
   useEffect(() => {
     localStorage.setItem("agent-fc-save-v1", JSON.stringify({
-      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, news,
+      careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, afcState, cafState, news,
     }));
-  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, news]);
+  }, [careerStarted, preset, week, season, dayOfWeek, money, reputation, players, transferHistory, leagueState, secondDivisionState, libertadoresState, championsState, afcState, cafState, news]);
 
   const myPlayers = useMemo(() => players.filter((p) => p.agent), [players]);
   const clientValue = myPlayers.reduce((sum, p) => sum + p.value, 0);
   const leagueLeader = leagueState.teams[0];
   const topScorer = leagueState.scorers[0];
   const activeLeague = competitionView === "serie-b" ? secondDivisionState : leagueState;
-  const activeTournament = competitionView === "libertadores" ? libertadoresState : championsState;
+  const activeTournament = competitionView === "libertadores" ? libertadoresState : competitionView === "afc" ? afcState : competitionView === "caf" ? cafState : championsState;
+  const visibleClubs = clubRegion === "Todos" ? worldClubs : worldClubs.filter((club) => club.region === clubRegion);
 
   function startCareer() {
     const start = presets[preset];
@@ -209,6 +207,8 @@ export default function HomePage() {
     setSecondDivisionState(createSecondDivisionState(season));
     setLibertadoresState(createLibertadoresState(season));
     setChampionsState(createChampionsState(season));
+    setAfcState(createAfcState(season));
+    setCafState(createCafState(season));
     setCareerStarted(true);
   }
 
@@ -272,15 +272,29 @@ export default function HomePage() {
       result.weeksProcessed,
       result.season,
     );
+    const afcRun = simulateTournamentWeeks(
+      afcState,
+      result.weeksProcessed,
+      result.season,
+    );
+    const cafRun = simulateTournamentWeeks(
+      cafState,
+      result.weeksProcessed,
+      result.season,
+    );
 
     setLeagueState(serieARun.state);
     setSecondDivisionState(serieBRun.state);
     setLibertadoresState(libertadoresRun.state);
     setChampionsState(championsRun.state);
+    setAfcState(afcRun.state);
+    setCafState(cafRun.state);
     setNews((current) => [
       ...transitionNews,
       ...libertadoresRun.news,
       ...championsRun.news,
+      ...afcRun.news,
+      ...cafRun.news,
       ...serieARun.news,
       ...serieBRun.news,
       ...result.news,
@@ -605,78 +619,112 @@ export default function HomePage() {
           )}
 
           {screen === "clubes" && (
-            <section className="club-grid">
-              {clubs.map((club) => (
-                <article className="club-card panel" key={club.name}>
-                  <div className="club-top"><i className="club-logo">{club.name.slice(0, 2).toUpperCase()}</i><div><h3>{club.name}</h3><p>{club.country}</p></div><span>REP {club.rep}</span></div>
-                  <div className="club-metrics"><div><small>Elenco</small><b>{club.squad}</b></div><div><small>Orçamento</small><b>{formatMoney(club.budget)}</b></div></div>
-                  <div className="club-interest"><Search /><span><small>Monitorando</small><b>{club.interest}</b></span></div>
-                  <button className="secondary full">Abrir clube</button>
-                </article>
-              ))}
-            </section>
+            <>
+              <div className="tabs">
+                {(["Todos","América do Sul","Europa","Ásia","África"] as const).map((region) => (
+                  <button key={region} className={clubRegion === region ? "active" : ""} onClick={() => setClubRegion(region)}>{region}</button>
+                ))}
+              </div>
+              <section className="club-grid">
+                {visibleClubs.map((club) => (
+                  <article className="club-card panel" key={club.name}>
+                    <div className="club-top">
+                      <i
+                        className={`club-logo ${club.badge.shape}`}
+                        style={{ background: `linear-gradient(145deg, ${club.badge.primary}, ${club.badge.secondary})` }}
+                        title="Escudo original do jogo"
+                      >{club.badge.initials}</i>
+                      <div><h3>{club.name}</h3><p>{club.country} • {club.region}</p></div><span>REP {club.rep}</span>
+                    </div>
+                    <div className="club-metrics"><div><small>Elenco</small><b>{club.squad}</b></div><div><small>Orçamento</small><b>{formatMoney(club.budget)}</b></div></div>
+                    <div className="club-interest"><Search /><span><small>Monitorando</small><b>{club.interest}</b></span></div>
+                    <button className="secondary full">Abrir clube</button>
+                  </article>
+                ))}
+              </section>
+            </>
           )}
 
           {screen === "competicoes" && (
             <section className="panel data-screen">
-              <div className="competition-header">
-                <span className="cup">🏆</span>
-                <div><small>BRASIL</small><h2>Brasileirão Série A</h2><p>Temporada {leagueState.season} • Rodada {leagueState.round}/38</p></div>
-                <div><small>Líder</small><b>{leagueLeader?.name ?? "—"}</b>{topScorer && <small>Artilheiro: {topScorer.name} ({topScorer.goals})</small>}</div>
-              </div>
-
               <div className="tabs">
-                <button className={competitionTab === "classificacao" ? "active" : ""} onClick={() => setCompetitionTab("classificacao")}>Classificação</button>
-                <button className={competitionTab === "resultados" ? "active" : ""} onClick={() => setCompetitionTab("resultados")}>Resultados</button>
-                <button className={competitionTab === "artilharia" ? "active" : ""} onClick={() => setCompetitionTab("artilharia")}>Artilharia</button>
+                <button className={competitionView === "serie-a" ? "active" : ""} onClick={() => { setCompetitionView("serie-a"); setCompetitionTab("classificacao"); }}>Série A</button>
+                <button className={competitionView === "serie-b" ? "active" : ""} onClick={() => { setCompetitionView("serie-b"); setCompetitionTab("classificacao"); }}>Série B</button>
+                <button className={competitionView === "libertadores" ? "active" : ""} onClick={() => { setCompetitionView("libertadores"); setCompetitionTab("resultados"); }}>Libertadores</button>
+                <button className={competitionView === "champions" ? "active" : ""} onClick={() => { setCompetitionView("champions"); setCompetitionTab("resultados"); }}>Champions</button>
+                <button className={competitionView === "afc" ? "active" : ""} onClick={() => { setCompetitionView("afc"); setCompetitionTab("resultados"); }}>AFC</button>
+                <button className={competitionView === "caf" ? "active" : ""} onClick={() => { setCompetitionView("caf"); setCompetitionTab("resultados"); }}>CAF</button>
               </div>
 
-              {competitionTab === "classificacao" && (
-                <div className="league-table large">
-                  <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>PTS</span></div>
-                  {leagueState.teams.map((team, i) => (
-                    <div className="tr" key={team.name}>
-                      <span>{i + 1}</span>
-                      <span><i className="crest">{team.name.slice(0, 1)}</i>{team.name}</span>
-                      <span>{team.played}</span>
-                      <span>{team.won}</span>
-                      <span>{team.drawn}</span>
-                      <span>{team.lost}</span>
-                      <b>{team.points}</b>
+              {(competitionView === "serie-a" || competitionView === "serie-b") ? (
+                <>
+                  <div className="competition-header">
+                    <span className="cup">🏆</span>
+                    <div><small>BRASIL</small><h2>{activeLeague.title}</h2><p>Temporada {activeLeague.season} • Rodada {activeLeague.round}/38</p></div>
+                    <div><small>Líder</small><b>{activeLeague.teams[0]?.name ?? "—"}</b>{activeLeague.scorers[0] && <small>Artilheiro: {activeLeague.scorers[0].name} ({activeLeague.scorers[0].goals})</small>}</div>
+                  </div>
+
+                  <div className="tabs">
+                    <button className={competitionTab === "classificacao" ? "active" : ""} onClick={() => setCompetitionTab("classificacao")}>Classificação</button>
+                    <button className={competitionTab === "resultados" ? "active" : ""} onClick={() => setCompetitionTab("resultados")}>Resultados</button>
+                    <button className={competitionTab === "artilharia" ? "active" : ""} onClick={() => setCompetitionTab("artilharia")}>Artilharia</button>
+                  </div>
+
+                  {competitionTab === "classificacao" && (
+                    <div className="league-table large">
+                      <div className="tr header"><span>#</span><span>Clube</span><span>J</span><span>V</span><span>E</span><span>D</span><span>PTS</span></div>
+                      {activeLeague.teams.map((team, i) => (
+                        <div className="tr" key={team.name}>
+                          <span>{i + 1}</span><span><i className="crest">{team.name.slice(0, 1)}</i>{team.name}</span>
+                          <span>{team.played}</span><span>{team.won}</span><span>{team.drawn}</span><span>{team.lost}</span><b>{team.points}</b>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {competitionTab === "resultados" && (
+                    <div>
+                      {activeLeague.recentResults.length === 0 ? (
+                        <div className="empty-state"><Trophy /><h3>A temporada ainda não começou</h3><p>Avance uma semana para disputar a primeira rodada.</p></div>
+                      ) : activeLeague.recentResults.map((match, index) => (
+                        <div className="market-row" key={`${match.round}-${match.home}-${match.away}-${index}`}>
+                          <b>R{match.round}</b><span>{match.home}</span><strong>{match.homeGoals} × {match.awayGoals}</strong><span>{match.away}</span><small>Final</small>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {competitionTab === "artilharia" && (
+                    <div className="league-table large">
+                      <div className="tr header"><span>#</span><span>Jogador</span><span>Clube</span><span></span><span></span><span></span><span>Gols</span></div>
+                      {activeLeague.scorers.slice(0,20).map((scorer,i) => (
+                        <div className="tr" key={scorer.name + scorer.club}><span>{i+1}</span><span>{scorer.name}</span><span>{scorer.club}</span><span></span><span></span><span></span><b>{scorer.goals}</b></div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeLeague.champion && <div className="panel-title"><span><Trophy /> CAMPEÃO: {activeLeague.champion}</span><em>{activeLeague.season}</em></div>}
+                </>
+              ) : (
+                <>
+                  <div className="competition-header">
+                    <span className="cup">🌍</span>
+                    <div><small>CONTINENTAL</small><h2>{activeTournament.title}</h2><p>Temporada {activeTournament.season}</p></div>
+                    <div><small>Fase atual</small><b>{activeTournament.champion ? "Encerrada" : ["Oitavas","Quartas","Semifinal","Final"][activeTournament.stageIndex] ?? "Final"}</b></div>
+                  </div>
+
+                  {activeTournament.champion && <div className="panel-title"><span><Trophy /> CAMPEÃO: {activeTournament.champion}</span><em>{activeTournament.season}</em></div>}
+
+                  <div className="market-head"><span>Fase</span><span>Mandante</span><span></span><span>Visitante</span><span>Placar</span></div>
+                  {activeTournament.history.length === 0 ? (
+                    <div className="empty-state"><Globe2 /><h3>Torneio aguardando início</h3><p>Avance o calendário para disputar as fases continentais.</p></div>
+                  ) : activeTournament.history.map((match,index) => (
+                    <div className="market-row" key={match.stage + match.home + match.away + index}>
+                      <b>{match.stage}</b><span>{match.home}</span><ChevronRight /><span>{match.away}</span><strong>{match.homeGoals} × {match.awayGoals}{match.penalties ? " • pên." : ""}</strong>
                     </div>
                   ))}
-                </div>
+                </>
               )}
-
-              {competitionTab === "resultados" && (
-                <div>
-                  {leagueState.recentResults.length === 0 ? (
-                    <div className="empty-state"><Trophy /><h3>A temporada ainda não começou</h3><p>Avance uma semana para disputar a primeira rodada.</p></div>
-                  ) : leagueState.recentResults.map((result, index) => (
-                    <div className="market-row" key={`${result.round}-${result.home}-${result.away}-${index}`}>
-                      <b>R{result.round}</b>
-                      <span>{result.home}</span>
-                      <strong>{result.homeGoals} × {result.awayGoals}</strong>
-                      <span>{result.away}</span>
-                      <small>{result.homeGoals === result.awayGoals ? "Empate" : result.homeGoals > result.awayGoals ? "Casa venceu" : "Visitante venceu"}</small>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {competitionTab === "artilharia" && (
-                <div className="league-table large">
-                  <div className="tr header"><span>#</span><span>Jogador</span><span>Clube</span><span></span><span></span><span></span><span>Gols</span></div>
-                  {leagueState.scorers.slice(0, 20).map((scorer, i) => (
-                    <div className="tr" key={scorer.name + scorer.club}>
-                      <span>{i + 1}</span><span>{scorer.name}</span><span>{scorer.club}</span><span></span><span></span><span></span><b>{scorer.goals}</b>
-                    </div>
-                  ))}
-                  {leagueState.scorers.length === 0 && <div className="empty-state"><Trophy /><h3>Sem gols registrados</h3><p>A artilharia aparecerá após as primeiras rodadas.</p></div>}
-                </div>
-              )}
-
-              {leagueState.champion && <div className="panel-title"><span><Trophy /> CAMPEÃO: {leagueState.champion}</span><em>{leagueState.season}</em></div>}
             </section>
           )}
 
